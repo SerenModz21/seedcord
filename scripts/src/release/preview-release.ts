@@ -5,6 +5,8 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import process from 'node:process';
 
+import { Envapter } from 'envapt';
+
 import { CliFlags } from '#src/lib/CliFlags';
 import { Workspace } from '#src/lib/Workspace';
 
@@ -27,6 +29,8 @@ async function main(): Promise<void> {
     }
 
     const { pre } = flags.parse(argv);
+    process.env.GITHUB_TOKEN =
+        Envapter.get('GITHUB_TOKEN') ?? execFileSync('gh', ['auth', 'token'], { encoding: 'utf8' }).trim();
     const { rootDir } = await Workspace.load(import.meta.dirname);
     const tree = path.join(tmpdir(), `seedcord-release-${String(Date.now())}`);
 
