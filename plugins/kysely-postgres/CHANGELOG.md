@@ -1,5 +1,34 @@
 # @seedcord/plugin-kysely-postgres
 
+## 0.7.0-next.0
+
+### 💥 Breaking
+
+- A relative folder path in the bot config, a plugin's `dir`, Kysely's migrations folder, and a folder passed to `importFiles` now resolve against `root` from `seedcord.config.ts`. With `root: './src'`, write `interactions: { path: './handlers' }` where you wrote `'./src/handlers'`. Outside `seedcord dev` and the built output, like in a test or a `tsx` run, a relative path now throws `CoreDirectoryRootUnknown` while an absolute path like `resolve(import.meta.dirname, './handlers')` works as before. ([#382](https://github.com/seedcord/seedcord/pull/382))
+- seedcord now needs envapt 9.1. Run `pnpm add envapt@^9.1`, then update your own envapt reads with the [v8 to v9 migration guide](https://envapt.materwelon.dev/docs/migration-v8-to-v9/). ([`99e7d64`](https://github.com/seedcord/seedcord/commit/99e7d6400b19af6db55548fd02c41ac1eb9b1737))
+- A mistake in your own code or command line now throws `SeedcordTypeError`, like two handlers on one route or a bad CLI flag. A zero `Cooldown` and other numbers out of range get `SeedcordRangeError`. An env var with a bad value is reported as a plain `SeedcordError`. ([#397](https://github.com/seedcord/seedcord/pull/397))
+- Error codes that cover the same failure are now merged, like the five match-arm codes into `MatchArmMissing`, and the codes of removed features, like `CliBootstrapWriteFailed`, are gone. Many of the rest have a new number, and some old numbers now belong to a different code. Match on the `SeedcordErrorCode` member and never on the raw number. ([#397](https://github.com/seedcord/seedcord/pull/397))
+- `migrations.path` is now `migrations.dir`, and the plugin now runs the migrations in its subfolders too. Every code file in it has to export `up` by name or on a default export object, or the plugin throws `PluginKyselyInvalidMigrationModule`, and `down` is now optional. A `.cjs` or `.cts` migration no longer loads. ([#383](https://github.com/seedcord/seedcord/pull/383))
+- `importFiles`, and with it every handler, command, subscriber, service and migration folder, now loads `.tsx`, `.mts`, `.jsx` and `.mjs` files as well as `.ts` and `.js`. A stray `.mjs` file left in a handler folder starts loading too. `seedcord build` writes each one as a `.js` file and throws `CoreDuplicateName` for two files that would build to the same one, like `Roll.ts` and `Roll.tsx`. ([#410](https://github.com/seedcord/seedcord/pull/410))
+- `importFiles` now skips dotfiles, dot-folders, `node_modules`, `outDir` and the logs folder, the same way a built bot does. That covers handler, command and service folders, the command scan in `seedcord codegen` and `commands`, and hot reload in `seedcord dev`. Move a handler out of a folder like `.drafts/` to keep it loading. ([#359](https://github.com/seedcord/seedcord/pull/359))
+
+### 🩹 Patch
+
+- Handler, middleware, command, subscriber, and service folders now load their files sorted by path. ([#358](https://github.com/seedcord/seedcord/pull/358))
+- Fixed `migrateDown({ steps: 3 })` skipping the same migration three times when the newest applied one has no `down`. It now logs that migration as skipped once and stops. ([`ab7cf81`](https://github.com/seedcord/seedcord/commit/ab7cf813bb7e93115902b5e7e2bf50206b4435b3))
+- Fixed `seedcord dev` skipping the restart prompt when you save a migration. ([#383](https://github.com/seedcord/seedcord/pull/383))
+- Fixed `corrupted migrations` for two migrations that ran at the same time with names like `B` and `a`, because the plugin never passed `migrations.nameComparator` to Kysely. ([#383](https://github.com/seedcord/seedcord/pull/383))
+- `attach` now throws `CorePluginScopeMismatch` when a plugin's transport or runtime differs from the bot's, even when a cast or plain JS gets past the types. A plugin that narrows either one, like `Plugin<{ runtime: 'server' }>`, now has to pass the same value to `super()`, for example `super(host, { runtime: 'server' })`. ([#363](https://github.com/seedcord/seedcord/pull/363))
+- Fixed a failed disconnect showing up twice at shutdown. The plugin used to log it and then throw it, and now only the thrown `PluginDisconnectFailed` reports it. ([#397](https://github.com/seedcord/seedcord/pull/397))
+
+#### 📦 Seedcord packages
+
+- `@seedcord/core` 0.10.0 → 0.11.0-next.0
+- `@seedcord/errors` 0.13.0 → 0.14.0-next.0
+- `@seedcord/logger` 0.4.4 → 0.5.0-next.0
+- `@seedcord/utils` 0.8.17 → 0.9.0-next.0
+- `@seedcord/types` 0.14.4 → 0.15.0-next.0
+
 ## 0.6.0
 
 ### 💥 Breaking

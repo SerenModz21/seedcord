@@ -1,5 +1,51 @@
 # @seedcord/http
 
+## 0.11.0-next.0
+
+### 💥 Breaking
+
+- A relative folder path in the bot config, a plugin's `dir`, Kysely's migrations folder, and a folder passed to `importFiles` now resolve against `root` from `seedcord.config.ts`. With `root: './src'`, write `interactions: { path: './handlers' }` where you wrote `'./src/handlers'`. Outside `seedcord dev` and the built output, like in a test or a `tsx` run, a relative path now throws `CoreDirectoryRootUnknown` while an absolute path like `resolve(import.meta.dirname, './handlers')` works as before. ([#382](https://github.com/seedcord/seedcord/pull/382))
+- seedcord now needs envapt 9.1. Run `pnpm add envapt@^9.1`, then update your own envapt reads with the [v8 to v9 migration guide](https://envapt.materwelon.dev/docs/migration-v8-to-v9/). ([`99e7d64`](https://github.com/seedcord/seedcord/commit/99e7d6400b19af6db55548fd02c41ac1eb9b1737))
+- A mistake in your own code or command line now throws `SeedcordTypeError`, like two handlers on one route or a bad CLI flag. A zero `Cooldown` and other numbers out of range get `SeedcordRangeError`. An env var with a bad value is reported as a plain `SeedcordError`. ([#397](https://github.com/seedcord/seedcord/pull/397))
+- Error codes that cover the same failure are now merged, like the five match-arm codes into `MatchArmMissing`, and the codes of removed features, like `CliBootstrapWriteFailed`, are gone. Many of the rest have a new number, and some old numbers now belong to a different code. Match on the `SeedcordErrorCode` member and never on the raw number. ([#397](https://github.com/seedcord/seedcord/pull/397))
+
+### ✨ Minor
+
+- A built bot now reads its `.env` files from the folder that holds `seedcord.config.ts`, whichever folder you start it from. A bun binary, or a build copied away from its `seedcord.config.ts`, reads them from the folder you start it in. `bot.ts` no longer needs `Envapter.baseDir = resolve(import.meta.dirname, '..')`, though a `baseDir` you set there still wins. ([#403](https://github.com/seedcord/seedcord/pull/403))
+- Removed the `runtime` field from the bot config. Delete it from your config, and write `Seedcord` where you wrote `Seedcord<HttpServerConfig>`. ([#363](https://github.com/seedcord/seedcord/pull/363))
+- Added edge bots for Cloudflare Workers, made with `new Seedcord(config)` from `@seedcord/http` through the `workerd` export condition and able to take plugins like a node bot. An edge bot reads its public key, command ids and emoji ids from the worker `seedcord build` wrote, and throws `CoreEdgeUnbuilt` on its first POST when built some other way. Removed `createSeedcord`, the `Manifest` type, and the `@seedcord/http/edge` and `@seedcord/http/manifest` subpaths. ([#363](https://github.com/seedcord/seedcord/pull/363))
+- Added a health path to a node http bot. Its interactions server answers `/health` with a 503 until startup finishes and a 200 after it, and `healthCheck: false` turns it off. ([#416](https://github.com/seedcord/seedcord/pull/416))
+- The node `Seedcord` now has `fetch(request)` for mounting the bot on a route in your own server, like a Hono app. Set `port: false` to turn off the built-in server. `fetch` rejects with `CoreFetchBeforeStart` until `start()` is called, and answers 503 once shutdown begins or `start()` fails. ([#364](https://github.com/seedcord/seedcord/pull/364))
+- A node bot now reads its public key from Discord at startup when `DISCORD_PUBLIC_KEY` is unset. If that read fails, startup throws `CoreDiscordReadFailed`. ([#381](https://github.com/seedcord/seedcord/pull/381))
+- `attach` now throws `CorePluginScopeMismatch` when a plugin's transport or runtime differs from the bot's, even when a cast or plain JS gets past the types. A plugin that narrows either one, like `Plugin<{ runtime: 'server' }>`, now has to pass the same value to `super()`, for example `super(host, { runtime: 'server' })`. ([#363](https://github.com/seedcord/seedcord/pull/363))
+- The gateway and node http `Seedcord` now work with `await using`. When the block ends, the bot runs its shutdown without calling `process.exit`. ([#364](https://github.com/seedcord/seedcord/pull/364))
+- `@seedcord/gateway` and `@seedcord/http` now export `HmrModuleHandler`, so a plugin in your bot's own code can import it without depending on `@seedcord/core`. ([#413](https://github.com/seedcord/seedcord/pull/413))
+- Added `readFiles` for bots and plugins that read json, markdown, images, or other non-code files from a folder that `files` in `seedcord.config.ts` lists, in dev and in a built bot alike. Each file comes back as a `Buffer`, and `bytes.toString()` turns a text file into a string. `@seedcord/gateway` and `@seedcord/http` now export `readFiles` and `importFiles` too (#410). ([#358](https://github.com/seedcord/seedcord/pull/358))
+
+### 🩹 Patch
+
+- Fixed `attach` rejecting a free key like `token` as already taken, as in `seedcord.attach('token', MyPlugin)` on an http bot. ([#362](https://github.com/seedcord/seedcord/pull/362))
+- Fixed a bot failing to start when Discord held its command deploy longer than 10 seconds, like on a third restart within a minute. Startup now gives the deploy up to 75 seconds for Discord's rate limit to reset, and logs how long Discord makes it wait. ([#389](https://github.com/seedcord/seedcord/pull/389))
+- Fixed `seedcord dev` sending an http bot's tunnel traffic to another program on the same port. With the default quick tunnel, the bot now listens on `127.0.0.1` only. ([#391](https://github.com/seedcord/seedcord/pull/391))
+- An unknown fault now prints its whole stack in your terminal, since `errors.errorStack` defaults to `true`. Set `errorStack: false` for the one-line log. ([`2443eb9`](https://github.com/seedcord/seedcord/commit/2443eb9813945fcd8fd387411df7330676a2330e))
+- Handler, middleware, command, subscriber, and service folders now load their files sorted by path. ([#358](https://github.com/seedcord/seedcord/pull/358))
+- A node http bot now fails to start with `PortInUse` when another process already listens on its `port`. On macOS, outside a `seedcord dev` quick tunnel, the bot starts anyway if that process listens on `127.0.0.1` only. ([#391](https://github.com/seedcord/seedcord/pull/391))
+- Fixed the node http server running the handler for a request that was still arriving when shutdown began. It now answers that request with 503. ([#364](https://github.com/seedcord/seedcord/pull/364))
+- Fixed the node http server's shutdown waiting 5s and failing with `stop-http-server` timed out when a client kept its connection open. The server now closes that connection once it sends the response the client was waiting on. ([#364](https://github.com/seedcord/seedcord/pull/364))
+- Fixed `seedcord codegen`, `seedcord build`, and `seedcord commands` each writing a log file under `logs/` in development. A bot now applies its `logger` config, along with the default log file, when `start()` runs. ([`b3d661a`](https://github.com/seedcord/seedcord/commit/b3d661a9ff02ab15c3b40aaea5dd786c79d9bc9c))
+- Fixed a bot that failed to start still deploying its commands later, once Discord's rate limit cleared. ([#389](https://github.com/seedcord/seedcord/pull/389))
+
+#### 📦 Seedcord packages
+
+- `@seedcord/core` 0.10.0 → 0.11.0-next.0
+- `@seedcord/errors` 0.13.0 → 0.14.0-next.0
+- `@seedcord/logger` 0.4.4 → 0.5.0-next.0
+- `@seedcord/utils` 0.8.17 → 0.9.0-next.0
+- `@seedcord/types` 0.14.4 → 0.15.0-next.0
+- `@seedcord/custom-id` 0.2.7 → 0.3.0-next.0
+- `@seedcord/event-emitter` 0.1.8 → 0.1.9-next.0
+- `@seedcord/rate-limiter` 0.1.12 → 0.1.13-next.0
+
 ## 0.10.2
 
 ### 🩹 Patch
