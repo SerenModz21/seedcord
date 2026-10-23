@@ -1,5 +1,18 @@
 # seedcord
 
+## 0.22.0-next.1
+
+### ✨ Minor
+
+- `seedcord dev` now reads `{"do":"restart"}`, `{"do":"disconnect"}`, and `{"do":"quit"}` lines from stdin when it runs without a terminal. ([#418](https://github.com/seedcord/seedcord/pull/418))
+
+### 🩹 Patch
+
+#### 📦 Seedcord packages
+
+- `@seedcord/utils` 0.9.0-next.0 → 0.9.0-next.1
+- `@seedcord/logger` 0.5.0-next.0 → 0.5.0-next.1
+
 ## 0.22.0-next.0
 
 ### 💥 Breaking

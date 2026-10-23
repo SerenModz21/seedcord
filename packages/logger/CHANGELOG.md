@@ -1,5 +1,21 @@
 # @seedcord/logger
 
+## 0.5.0-next.1
+
+### 💥 Breaking
+
+- `new WinstonConsoleSink()` without a `format` now prints JSON lines unless the bot runs from a terminal in development. It used to print readable columns everywhere. ([#418](https://github.com/seedcord/seedcord/pull/418))
+
+### ✨ Minor
+
+- Added a `json-ansi` format for `WinstonConsoleSink` that keeps ANSI color codes in `message`, so a tool that spawns the bot can render them. A bot in development prints it by default when its output is piped or redirected. ([#418](https://github.com/seedcord/seedcord/pull/418))
+
+### 🩹 Patch
+
+#### 📦 Seedcord packages
+
+- `@seedcord/utils` 0.9.0-next.0 → 0.9.0-next.1
+
 ## 0.5.0-next.0
 
 ### 💥 Breaking
