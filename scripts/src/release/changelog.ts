@@ -30,8 +30,11 @@ async function subjectOf(sha: string): Promise<string | undefined> {
     }
 }
 
-function contributorsThrough(api: GitHubApi): (pull: string) => Promise<string[]> {
+function contributorsThrough(repo: string): (pull: string) => Promise<string[]> {
+    let api: GitHubApi | undefined;
+
     return async (pull: string): Promise<string[]> => {
+        api ??= new GitHubApi(repo, githubToken());
         const number = Number(pull);
         const [author, committers] = await Promise.all([
             api.pullRequestAuthor(number),
@@ -54,7 +57,7 @@ function rendererFor(options: ChangelogOptions | null): ChangelogRenderer {
     const renderer = new ChangelogRenderer({
         repo,
         subjectOf,
-        contributorsOf: contributorsThrough(new GitHubApi(repo, githubToken())),
+        contributorsOf: contributorsThrough(repo),
         maintainers: options?.maintainers ?? []
     });
     renderers.set(repo, renderer);
