@@ -1,7 +1,7 @@
 {
     "$schema": "node_modules/wrangler/config-schema.json",
     "name": "seedcord-home",
-    "compatibility_date": "2026-06-23",
+    "compatibility_date": "2026-08-04",
     "main": "./worker.ts",
     "routes": [
         { "pattern": "seedcord.org", "custom_domain": true },
@@ -15,5 +15,10 @@
         // worker.ts sets X-Robots-Tag on non-production hosts and redirects www to the main website
         // cloudflare skips _headers for anything the worker returns
         "run_worker_first": ["/*", "!/_next/static/*"]
+    },
+    "env": {
+        "preview": {
+            "routes": [{ "pattern": "preview.seedcord.org", "custom_domain": true }]
+        }
     }
 }
