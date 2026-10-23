@@ -1,4 +1,4 @@
-import { execFile } from 'node:child_process';
+import { execFile, execFileSync } from 'node:child_process';
 import { promisify } from 'node:util';
 
 import { Envapter } from 'envapt';
@@ -9,6 +9,9 @@ import { ChangelogRenderer } from '#src/release/ChangelogRenderer';
 import type { RenderedChangeset, UpdatedDependency } from '#src/release/ChangelogRenderer';
 
 const run = promisify(execFile);
+
+const githubToken = (): string =>
+    Envapter.get('GITHUB_TOKEN') ?? execFileSync('gh', ['auth', 'token'], { encoding: 'utf8' }).trim();
 
 interface ChangelogOptions {
     repo?: string;
@@ -51,7 +54,7 @@ function rendererFor(options: ChangelogOptions | null): ChangelogRenderer {
     const renderer = new ChangelogRenderer({
         repo,
         subjectOf,
-        contributorsOf: contributorsThrough(new GitHubApi(repo, Envapter.get('GITHUB_TOKEN'))),
+        contributorsOf: contributorsThrough(new GitHubApi(repo, githubToken())),
         maintainers: options?.maintainers ?? []
     });
     renderers.set(repo, renderer);
