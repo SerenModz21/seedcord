@@ -14,13 +14,13 @@ vi.mock('#lib/docs/engine', () => ({
         )
 }));
 
-const { GET } = await import('#src/app/search/[packageId]/[file]/route');
+const { GET } = await import('#src/app/api/search/[packageId]/[file]/route');
 
 function search(packageId: string, file: string): Promise<Response> {
-    return GET(new Request('https://seedcord.org/docs/search'), { params: Promise.resolve({ packageId, file }) });
+    return GET(new Request('https://seedcord.org/docs/api/search'), { params: Promise.resolve({ packageId, file }) });
 }
 
-describe('GET /search/[packageId]/[file]', () => {
+describe('GET /api/search/[packageId]/[file]', () => {
     it('serves the symbols of the version in the file name', async () => {
         const response = await search('core', '0.9.2.json');
         const entries = (await response.json()) as SearchIndexEntry[];

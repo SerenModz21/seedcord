@@ -37,10 +37,10 @@ function render(query: string, open = true): ReturnType<typeof renderHook<Return
 beforeEach(async () => {
     router.pathname = '/';
     files = {
-        '/docs/search/packages.json': PACKAGES,
-        '/docs/search/seedcord/1.0.0.json': [entry('Seedcord', 'seedcord')],
-        '/docs/search/utils/2.0.0.json': [entry('Clamp', '@seedcord/utils')],
-        '/docs/search/utils/1.2.0.json': [entry('Clamp', '@seedcord/utils'), entry('Lerp', '@seedcord/utils')]
+        '/docs/api/search/packages.json': PACKAGES,
+        '/docs/api/search/seedcord/1.0.0.json': [entry('Seedcord', 'seedcord')],
+        '/docs/api/search/utils/2.0.0.json': [entry('Clamp', '@seedcord/utils')],
+        '/docs/api/search/utils/1.2.0.json': [entry('Clamp', '@seedcord/utils'), entry('Lerp', '@seedcord/utils')]
     };
     fetchMock = vi.fn((url: string) => {
         const body = files[url];
@@ -88,7 +88,7 @@ describe('useCommandPaletteSearch', () => {
     });
 
     it('still searches the other packages when one file is missing', async () => {
-        delete files['/docs/search/utils/2.0.0.json'];
+        delete files['/docs/api/search/utils/2.0.0.json'];
         const { result } = render('seedcord');
 
         await waitFor(() => expect(result.current.status).toBe('success'));
@@ -96,7 +96,7 @@ describe('useCommandPaletteSearch', () => {
     });
 
     it('reports an error when the package list does not load', async () => {
-        delete files['/docs/search/packages.json'];
+        delete files['/docs/api/search/packages.json'];
         const { result } = render('clamp');
 
         await waitFor(() => expect(result.current.status).toBe('error'));
@@ -104,8 +104,8 @@ describe('useCommandPaletteSearch', () => {
     });
 
     it('loads again when the palette reopens after a failed load', async () => {
-        const packages = files['/docs/search/packages.json'];
-        delete files['/docs/search/packages.json'];
+        const packages = files['/docs/api/search/packages.json'];
+        delete files['/docs/api/search/packages.json'];
         const { result, rerender } = renderHook(
             ({ open }: { open: boolean }) =>
                 useCommandPaletteSearch({ open, query: 'clamp', scope: 'all', kind: 'all', prerelease: false }),
@@ -113,7 +113,7 @@ describe('useCommandPaletteSearch', () => {
         );
         await waitFor(() => expect(result.current.status).toBe('error'));
 
-        files['/docs/search/packages.json'] = packages;
+        files['/docs/api/search/packages.json'] = packages;
         rerender({ open: false });
         rerender({ open: true });
 

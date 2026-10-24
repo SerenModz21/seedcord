@@ -1,7 +1,7 @@
 import { DOCS } from '@seedcord/ui/sites';
 
 const EXTENSION = '.json';
-const ROOT = `${DOCS.path}/search`;
+const ROOT = `${DOCS.path}/api/search`;
 
 export const PACKAGES_URL = `${ROOT}/packages${EXTENSION}`;
 
