@@ -22,8 +22,8 @@
     "dependencies": {
         "@seedcord/docs-engine": "workspace:^",
         "@seedcord/docs-generator": "workspace:^",
+        "@seedcord/docs-search": "workspace:^",
         "@seedcord/eslint-config": "workspace:^",
-        "@seedcord/types": "workspace:^",
         "@seedcord/ui": "workspace:^",
         "@tailwindcss/postcss": "catalog:deps",
         "discord-component-embed": "workspace:^",

@@ -85,7 +85,6 @@ describe('VersionedDocsEngine', () => {
         expect(engine.activeVersion(MOCK_PACKAGE_FULL_NAME)).toBe('0.0.0');
         expect(engine.getNodeBySlug(MOCK_PACKAGE_FULL_NAME, 'mock-class')?.name).toBe('MockClass');
         expect(engine.listPackageEntities(MOCK_PACKAGE_FULL_NAME)?.class).toContain('mock-class');
-        expect(engine.search('MockClass', MOCK_PACKAGE_FULL_NAME).length).toBeGreaterThan(0);
     });
 
     it('deserializes a package once per version across engines sharing a model cache', async () => {
@@ -104,7 +103,6 @@ describe('VersionedDocsEngine', () => {
         const projectFetches = fetched.filter((url) => url.includes(`/${MOCK_FOLDER}/`)).length;
         expect(projectFetches).toBe(1);
         expect(second.getNodeBySlug(MOCK_PACKAGE_FULL_NAME, 'mock-class')?.name).toBe('MockClass');
-        expect(second.search('MockClass', MOCK_PACKAGE_FULL_NAME).length).toBeGreaterThan(0);
     });
 
     it('resolves an in-package reference by key', async () => {

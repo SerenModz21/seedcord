@@ -1,4 +1,4 @@
-import { DocSearch } from '@seedcord/docs-engine/client';
+import { DocSearch } from '@seedcord/docs-search';
 
 import type { SearchIndexEntry } from './types';
 import type { KindFilter } from '#components/search/command-palette/constants';

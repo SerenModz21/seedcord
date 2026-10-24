@@ -497,12 +497,12 @@ importers:
       '@seedcord/docs-generator':
         specifier: workspace:^
         version: link:../../tooling/docs-generator
+      '@seedcord/docs-search':
+        specifier: workspace:^
+        version: link:../../tooling/docs-search
       '@seedcord/eslint-config':
         specifier: workspace:^
         version: link:../../tooling/eslint-config
-      '@seedcord/types':
-        specifier: workspace:^
-        version: link:../../packages/types
       '@seedcord/ui':
         specifier: workspace:^
         version: link:../../tooling/ui
@@ -1838,9 +1838,6 @@ importers:
 
   tooling/docs-engine:
     dependencies:
-      '@leeoniya/ufuzzy':
-        specifier: catalog:deps
-        version: 1.0.19
       '@microsoft/api-extractor-model':
         specifier: 7.33.14
         version: 7.33.14(@types/node@26.1.2)
@@ -1850,6 +1847,9 @@ importers:
       '@seedcord/docs-generator':
         specifier: workspace:^
         version: link:../docs-generator
+      '@seedcord/docs-search':
+        specifier: workspace:^
+        version: link:../docs-search
       prettier:
         specifier: catalog:deps
         version: 3.9.9
@@ -1884,6 +1884,25 @@ importers:
       yaml:
         specifier: catalog:deps
         version: 2.9.1
+    devDependencies:
+      '@seedcord/eslint-config':
+        specifier: workspace:^
+        version: link:../eslint-config
+      '@seedcord/tsconfig':
+        specifier: workspace:^
+        version: link:../tsconfig
+      '@seedcord/tsdown-config':
+        specifier: workspace:^
+        version: link:../tsdown-config
+      '@seedcord/vitest-config':
+        specifier: workspace:^
+        version: link:../vitest-config
+
+  tooling/docs-search:
+    dependencies:
+      '@leeoniya/ufuzzy':
+        specifier: catalog:deps
+        version: 1.0.19
     devDependencies:
       '@seedcord/eslint-config':
         specifier: workspace:^

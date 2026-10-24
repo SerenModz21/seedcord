@@ -54,10 +54,10 @@
         "LICENSE"
     ],
     "dependencies": {
-        "@leeoniya/ufuzzy": "catalog:deps",
         "@microsoft/api-extractor-model": "7.33.14",
         "@microsoft/tsdoc": "^0.17.1",
         "@seedcord/docs-generator": "workspace:^",
+        "@seedcord/docs-search": "workspace:^",
         "prettier": "catalog:deps",
         "semver": "^7.8.5"
     },

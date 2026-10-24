@@ -79,6 +79,9 @@
 '📦 docs-engine':
   - changed-files:
       - any-glob-to-any-file: 'tooling/docs-engine/**'
+'📦 docs-search':
+  - changed-files:
+      - any-glob-to-any-file: 'tooling/docs-search/**'
 '🏠 home':
   - changed-files:
       - any-glob-to-any-file: 'apps/home/**'

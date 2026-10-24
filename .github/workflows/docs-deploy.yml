@@ -6,6 +6,7 @@ on:
     paths:
       - 'apps/docs/**'
       - 'tooling/docs-engine/**'
+      - 'tooling/docs-search/**'
       - 'tooling/docs-generator/**'
       - 'tooling/ui/**'
       - 'scripts/src/docs/**'

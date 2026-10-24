@@ -1,8 +1,8 @@
 import uFuzzy from '@leeoniya/ufuzzy';
 
-import { DocKind } from '#model/kinds';
+import { DocKind } from '#src/DocKind';
 
-import type { DocSearchEntry } from '#src/types';
+import type { DocSearchEntry } from '#src/DocSearchEntry';
 
 export type ScoredEntry = Omit<DocSearchEntry, 'summary' | 'value'>;
 

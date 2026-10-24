@@ -1,6 +1,7 @@
 import type { GlobalId } from '#src/ids';
 import type { PackageDirectory } from '#src/PackageDirectory';
 import type { ManifestRepository, PackageSourceIndex, ReexportEntry as DocReexport } from '@seedcord/docs-generator';
+import type { DocSearchEntry } from '@seedcord/docs-search';
 
 export type SigPart =
     | { kind: 'text'; text: string }
@@ -266,22 +267,6 @@ export interface DocNode {
     entries?: string[];
     // Set on a runtime build's top-level node that reuses a default-build name, like the edge `Seedcord`.
     condition?: string;
-}
-
-export interface DocSearchEntry {
-    slug: string;
-    name: string;
-    qualifiedName: string;
-    packageName: string;
-    packageVersion?: string;
-    kind: number;
-    summary: string | null;
-    aliases?: string[];
-    file?: string;
-    value?: string;
-    /** The runtime condition of this entry's class, like `workerd`. */
-    condition?: string;
-    tokens: string[];
 }
 
 export interface DocIndexes {

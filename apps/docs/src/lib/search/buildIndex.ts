@@ -1,13 +1,14 @@
 import { buildEntityHref, buildPackageBasePath, kindName, memberFragment } from '@seedcord/docs-engine';
-import { DocKind } from '@seedcord/docs-engine/client';
 import { RuntimeBuild } from '@seedcord/docs-generator/runtime-build';
+import { DocKind } from '@seedcord/docs-search';
 
 import { loadDocsCatalog } from '#lib/docs/catalog';
 import { getDocsEngine } from '#lib/docs/engine';
 
 import type { SearchIndexEntry, SearchPackage } from './types';
 import type { CommandAction, SearchResultKind } from '#components/search/command-palette/types';
-import type { DocNode, DocSearchEntry, VersionedDocsEngine } from '@seedcord/docs-engine';
+import type { DocNode, VersionedDocsEngine } from '@seedcord/docs-engine';
+import type { DocSearchEntry } from '@seedcord/docs-search';
 
 const RESULT_KINDS: Partial<Record<number, SearchResultKind>> = {
     [DocKind.Class]: 'class',

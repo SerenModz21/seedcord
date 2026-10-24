@@ -111,6 +111,7 @@
             "entry": ["**/*.types-test.ts"]
         },
         "tooling/docs-engine": {},
+        "tooling/docs-search": {},
         "tooling/docs-generator": {
             "ignore": ["tests/mock/**", "tests/mock-base/**"]
         },

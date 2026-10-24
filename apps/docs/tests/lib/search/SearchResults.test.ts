@@ -1,4 +1,4 @@
-import { DocKind } from '@seedcord/docs-engine/client';
+import { DocKind } from '@seedcord/docs-search';
 import { describe, expect, it } from 'vitest';
 
 import { SearchResults } from '#lib/search/SearchResults';

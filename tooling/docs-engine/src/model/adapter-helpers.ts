@@ -9,10 +9,11 @@ import {
     type Excerpt,
     type HeritageType
 } from '@microsoft/api-extractor-model';
+import { DocKind } from '@seedcord/docs-search';
 
 import { referenceFromCanonical } from '#model/canonical-ref';
 import { excerptToInlineType } from '#model/excerpt-renderer';
-import { DocKind, frozenKindLabel } from '#model/kinds';
+import { frozenKindLabel } from '#model/kinds';
 import { memberModifiers } from '#model/modifiers';
 import { buildComment, type LinkResolver } from '#model/tsdoc-comment';
 import { formatRenderedSignature } from '#transformers/signature-renderer';

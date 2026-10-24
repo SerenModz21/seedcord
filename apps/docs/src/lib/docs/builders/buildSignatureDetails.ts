@@ -1,4 +1,5 @@
-import { DocKind, memberFragment, memberModifiers, withOverload } from '@seedcord/docs-engine';
+import { memberFragment, memberModifiers, withOverload } from '@seedcord/docs-engine';
+import { DocKind } from '@seedcord/docs-search';
 
 import { cloneCommentParagraphs } from '#lib/docs/comments/creators';
 import { formatCommentRich } from '#lib/docs/comments/formatter';
