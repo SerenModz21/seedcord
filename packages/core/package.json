@@ -3,7 +3,7 @@
     "type": "module",
     "version": "0.11.0-next.0",
     "engines": {
-        "node": ">=24.11",
+        "node": "^24.22.1 || >=26.12.1",
         "bun": ">=1.4.2"
     },
     "description": "Foundational code shared by both transports",
@@ -95,7 +95,8 @@
         "@seedcord/types": "workspace:^",
         "@seedcord/utils": "workspace:^",
         "discord-api-types": "catalog:deps",
-        "reflect-metadata": "catalog:deps"
+        "reflect-metadata": "catalog:deps",
+        "verkit": "catalog:deps"
     },
     "devDependencies": {
         "@seedcord/eslint-config": "workspace:^",

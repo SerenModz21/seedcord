@@ -1,11 +1,11 @@
 import { defineConfig } from 'eslint/config';
 import path from 'node:path';
+import merge from 'es-toolkit/compat/merge';
 import prettierConfig from 'eslint-config-prettier';
 import { importX } from 'eslint-plugin-import-x';
 import eslintSecurity from 'eslint-plugin-security';
 import eslintTsdoc from 'eslint-plugin-tsdoc';
 import eslintUnicorn from 'eslint-plugin-unicorn';
-import merge from 'lodash.merge';
 import tseslint from 'typescript-eslint';
 
 import { mdxBlock } from './mdx';

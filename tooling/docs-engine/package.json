@@ -2,7 +2,7 @@
     "name": "@seedcord/docs-engine",
     "version": "0.3.2",
     "engines": {
-        "node": ">=24.11",
+        "node": "^24.22.1 || >=26.12.1",
         "bun": ">=1.4.2"
     },
     "private": true,
@@ -59,13 +59,12 @@
         "@seedcord/docs-generator": "workspace:^",
         "@seedcord/docs-search": "workspace:^",
         "prettier": "catalog:deps",
-        "semver": "^7.8.5"
+        "verkit": "catalog:deps"
     },
     "devDependencies": {
         "@seedcord/eslint-config": "workspace:^",
         "@seedcord/tsconfig": "workspace:^",
         "@seedcord/tsdown-config": "workspace:^",
-        "@seedcord/vitest-config": "workspace:^",
-        "@types/semver": "^7.8.0"
+        "@seedcord/vitest-config": "workspace:^"
     }
 }

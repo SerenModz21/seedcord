@@ -123,7 +123,7 @@
                 "eslint-plugin-security",
                 "eslint-plugin-tsdoc",
                 "eslint-plugin-unicorn",
-                "lodash.merge"
+                "es-toolkit"
             ]
         },
         "tooling/eslint-config-base": {

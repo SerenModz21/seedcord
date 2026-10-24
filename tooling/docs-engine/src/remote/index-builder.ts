@@ -1,4 +1,4 @@
-import { major, minor, prerelease, rcompare, valid } from 'semver';
+import { compareReversed, getMajor, getMinor, isPrerelease, isValid } from 'verkit';
 
 import type { IndexJson, PackageIndexEntry, StableChannel } from '#remote/index-json';
 import type { EntityTone } from '#src/tones';
@@ -42,9 +42,9 @@ export function buildIndex(packages: readonly PackageVersionsInput[], options: B
 }
 
 function buildEntry(pkg: PackageVersionsInput): PackageIndexEntry {
-    const valids = pkg.versions.filter((version) => valid(version) !== null);
-    const stable = valids.filter((version) => prerelease(version) === null);
-    const pre = valids.filter((version) => prerelease(version) !== null);
+    const valids = pkg.versions.filter((version) => isValid(version));
+    const stable = valids.filter((version) => !isPrerelease(version));
+    const pre = valids.filter((version) => isPrerelease(version));
 
     const entry: PackageIndexEntry = {
         fullName: pkg.fullName,
@@ -69,12 +69,12 @@ function buildEntry(pkg: PackageVersionsInput): PackageIndexEntry {
 
 /** The highest stable version in a list, ignoring prereleases and anything unparseable. */
 export function newestStable(versions: readonly string[]): string | undefined {
-    const stable = versions.filter((version) => valid(version) !== null && prerelease(version) === null);
-    return [...stable].sort(rcompare)[0];
+    const stable = versions.filter((version) => isValid(version) && !isPrerelease(version));
+    return [...stable].sort(compareReversed)[0];
 }
 
 function buildStable(versions: readonly string[]): StableChannel | null {
-    const sorted = [...versions].sort(rcompare);
+    const sorted = [...versions].sort(compareReversed);
     const [latest] = sorted;
     if (!latest) {
         return null;
@@ -82,13 +82,13 @@ function buildStable(versions: readonly string[]): StableChannel | null {
 
     return {
         latest,
-        latestByMinor: headsBy(sorted, (version) => `${major(version)}.${minor(version)}`),
-        latestByMajor: headsBy(sorted, (version) => `${major(version)}`)
+        latestByMinor: headsBy(sorted, (version) => `${getMajor(version)}.${getMinor(version)}`),
+        latestByMajor: headsBy(sorted, (version) => `${getMajor(version)}`)
     };
 }
 
 function buildPrerelease(versions: readonly string[]): { latest: string } | null {
-    const [latest] = [...versions].sort(rcompare);
+    const [latest] = [...versions].sort(compareReversed);
     return latest ? { latest } : null;
 }
 

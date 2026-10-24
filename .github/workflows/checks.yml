@@ -139,7 +139,7 @@ jobs:
           persist-credentials: false
       - uses: $/.github/actions/setup
         with:
-          node-version: '24.11'
+          node-version: '24.22.1'
       - run: pnpm turbo test --continue --filter='!@seedcord/scripts'
 
   bun:

@@ -9,7 +9,7 @@ const BODY = `---
 name: seedcord
 description: ${DESCRIPTION}
 license: Apache-2.0
-compatibility: TypeScript projects on Node 24.11 or newer, or Bun 1.4.2 or newer.
+compatibility: TypeScript projects on Node 24.22.1+ (24.x), Node 26.12.1+, or Bun 1.4.2+.
 metadata:
     documentation: ${GUIDE}
     reference: ${DOCS_URL}
