@@ -29,10 +29,7 @@ function better<Row>(left: Group<Row>, right: Group<Row>): number {
     return 0;
 }
 
-/**
- * Reorders whole pages by how much of the query they cover, breaking a tie on the title.
- * BM25 divides by length and scores a two word block above the paragraph that answers the question.
- */
+// reorders pages by query coverage by using the title to break ties
 export function rankByCoverage<Row extends Result>(results: readonly Row[], query: string): Row[] {
     const terms = query
         .toLowerCase()

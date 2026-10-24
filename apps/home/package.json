@@ -33,7 +33,7 @@
         "react-dom": "catalog:react",
         "takumi-js": "catalog:deps",
         "unist-util-visit": "catalog:deps",
-        "zod": "^4.6.5"
+        "zod": "^4.6.7"
     },
     "devDependencies": {
         "@mdx-js/mdx": "catalog:deps",
@@ -49,7 +49,6 @@
         "eslint": "^9.39.4",
         "eslint-config-next": "catalog:eslint",
         "eslint-plugin-better-tailwindcss": "catalog:eslint",
-        "eslint-plugin-react-compiler": "catalog:eslint",
         "eslint-plugin-tailwind-canonical-classes": "catalog:eslint",
         "mdast-util-to-hast": "catalog:deps",
         "mdast-util-to-markdown": "catalog:deps",
