@@ -187,4 +187,4 @@ jobs:
         with:
           persist-credentials: false
       - uses: $/.github/actions/setup
-      - run: pnpm audit --prod --audit-level=high
+      - run: vp pm audit --production --level high

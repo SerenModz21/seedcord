@@ -85,7 +85,7 @@ This push publishes nothing (the versions are already on `latest`), and the gate
 
 A new published package needs one thing before its first release:
 
-- Its first publish cannot be done locally with provenance, because provenance needs the CI OIDC environment. If you must publish it by hand once, use `pnpm publish --filter @seedcord/newpkg --no-provenance`. Prefer letting CI do it.
+- Its first publish cannot be done locally with provenance, because provenance needs the CI OIDC environment. If you must publish it by hand once, use `vp pm publish --filter @seedcord/newpkg`. Prefer letting CI do it.
 
 Confirm the package is public (the changesets config sets `access: "public"`) before the first publish.
 
@@ -94,8 +94,8 @@ Confirm the package is public (the changesets config sets `access: "public"`) be
 Move the tag. You cannot delete or replace the version itself.
 
 ```sh
-npm dist-tag add seedcord@X.Y.Z latest
-npm dist-tag ls seedcord
+vp pm dist-tag add seedcord@X.Y.Z latest
+vp pm dist-tag ls seedcord
 ```
 
 ## Don't
