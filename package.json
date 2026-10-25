@@ -22,8 +22,6 @@
         "lint:fix": "turbo lint:fix",
         "lint:md": "markdownlint-cli2",
         "lint:fix:md": "markdownlint-cli2 --fix",
-        "fmt": "turbo fmt && vp run fmt:root",
-        "fmt:check": "turbo fmt:check && vp run fmt:check:root",
         "fmt:root": "vp fmt --write '*.{json,md,mjs,ts,yml,yaml}' '.changeset/*.md' '.github/**/*.{yml,yaml,md}' --no-error-on-unmatched-pattern",
         "fmt:check:root": "vp fmt --check '*.{json,md,mjs,ts,yml,yaml}' '.changeset/*.md' '.github/**/*.{yml,yaml,md}' --no-error-on-unmatched-pattern",
         "tc": "turbo tc",

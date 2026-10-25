@@ -42,9 +42,7 @@
     },
     "scripts": {
         "build": "echo 'Are you seriously trying to build .json files?'",
-        "clean": "echo 'What build artifacts?'",
-        "fmt": "vp fmt --write '**/*.{json,md}' --no-error-on-unmatched-pattern",
-        "fmt:check": "vp fmt --check '**/*.{json,md}' --no-error-on-unmatched-pattern"
+        "clean": "echo 'What build artifacts?'"
     },
     "engines": {
         "bun": ">=1.4.2",

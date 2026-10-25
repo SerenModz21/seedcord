@@ -19,8 +19,6 @@
         "deploy": "wrangler deploy",
         "lint": "eslint '**/*.{ts,tsx}' --cache --no-error-on-unmatched-pattern",
         "lint:fix": "eslint '**/*.{ts,tsx}' --fix --cache --no-error-on-unmatched-pattern",
-        "fmt": "vp fmt --write '**/*.{ts,tsx,json,md,css}' 'content/**/*.mdx' --no-error-on-unmatched-pattern",
-        "fmt:check": "vp fmt --check '**/*.{ts,tsx,json,md,css}' 'content/**/*.mdx' --no-error-on-unmatched-pattern",
         "tc": "fumadocs-mdx && tsgo --noEmit",
         "test": "vp test run",
         "test:watch": "vp test dev"
