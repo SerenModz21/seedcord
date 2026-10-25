@@ -68,7 +68,7 @@ The full suite runs with the machine busy, so a step that takes 3ms alone can ta
 
 Run these before calling a test change done:
 
-1. `pnpm -C <pkg> exec vitest run --maxWorkers=1`. One worker runs every file in one process, which shows a cross-file leak in a single run. In packages/http, add `--project node`, since the workerd pool isolates its own files.
+1. `vp -C <pkg> test run --maxWorkers=1`. One worker runs every file in one process, which shows a cross-file leak in a single run. In packages/http, add `--project node`, since the workerd pool isolates its own files.
 2. Run it with `--sequence.shuffle.files --sequence.seed=<n>` for two or three seeds. CI groups files into workers differently from your machine, and a leak that depends on file order shows up under a different order.
 3. Confirm `tests/temp` is empty afterwards. `pnpm clean:scratch` clears what a killed run left behind.
 
