@@ -1,15 +1,10 @@
 # @seedcord/utils
 
-## 0.9.0-next.1
-
-### 🩹 Patch
-
-- `seedcord dev` now reads `{"do":"restart"}`, `{"do":"disconnect"}`, and `{"do":"quit"}` lines from stdin when it runs without a terminal. ([#418](https://github.com/seedcord/seedcord/pull/418))
-
-## 0.9.0-next.0
+## 0.9.0
 
 ### 💥 Breaking
 
+- Requires Node 24.22.1+ on 24.x or Node 26.12.1+ for the October 2026 security fixes. ([`cc7930b`](https://github.com/seedcord/seedcord/commit/cc7930b810b17be66cff49c6cd793b199ef752a3))
 - A relative folder path in the bot config, a plugin's `dir`, Kysely's migrations folder, and a folder passed to `importFiles` now resolve against `root` from `seedcord.config.ts`. With `root: './src'`, write `interactions: { path: './handlers' }` where you wrote `'./src/handlers'`. Outside `seedcord dev` and the built output, like in a test or a `tsx` run, a relative path now throws `CoreDirectoryRootUnknown` while an absolute path like `resolve(import.meta.dirname, './handlers')` works as before. ([#382](https://github.com/seedcord/seedcord/pull/382))
 - A mistake in your own code or command line now throws `SeedcordTypeError`, like two handlers on one route or a bad CLI flag. A zero `Cooldown` and other numbers out of range get `SeedcordRangeError`. An env var with a bad value is reported as a plain `SeedcordError`. ([#397](https://github.com/seedcord/seedcord/pull/397))
 - Error codes that cover the same failure are now merged, like the five match-arm codes into `MatchArmMissing`, and the codes of removed features, like `CliBootstrapWriteFailed`, are gone. Many of the rest have a new number, and some old numbers now belong to a different code. Match on the `SeedcordErrorCode` member and never on the raw number. ([#397](https://github.com/seedcord/seedcord/pull/397))
@@ -25,6 +20,7 @@
 
 ### 🩹 Patch
 
+- `seedcord dev` now reads `{"do":"restart"}`, `{"do":"disconnect"}`, and `{"do":"quit"}` lines from stdin when it runs without a terminal. ([#418](https://github.com/seedcord/seedcord/pull/418))
 - Handler, middleware, command, subscriber, and service folders now load their files sorted by path. ([#358](https://github.com/seedcord/seedcord/pull/358))
 - Fixed `formatFilePath` printing backslashes on Windows. It now prints `./src/bot.ts` where it printed `.\src\bot.ts`. ([#401](https://github.com/seedcord/seedcord/pull/401))
 - Fixed `roundToDenomination` rounding 1949 up to `2K` and printing `1undefined` for a value after the last suffix. Now 1949 gives `1.9K`, for example. ([#384](https://github.com/seedcord/seedcord/pull/384), thanks [@dumbramkrishna](https://github.com/dumbramkrishna))
@@ -33,8 +29,8 @@
 
 #### 📦 Seedcord packages
 
-- `@seedcord/errors` 0.13.0 → 0.14.0-next.0
-- `@seedcord/types` 0.14.4 → 0.15.0-next.0
+- `@seedcord/errors` 0.14.0-next.0 → 0.14.0
+- `@seedcord/types` 0.15.0-next.0 → 0.15.0
 
 ## 0.8.17
 

@@ -1,9 +1,10 @@
 # @seedcord/errors
 
-## 0.14.0-next.0
+## 0.14.0
 
 ### 💥 Breaking
 
+- Requires Node 24.22.1+ on 24.x or Node 26.12.1+ for the October 2026 security fixes. ([`cc7930b`](https://github.com/seedcord/seedcord/commit/cc7930b810b17be66cff49c6cd793b199ef752a3))
 - `seedcord build` now bundles the bot with Vite and empties `outDir` before it writes. It throws `CliBuildOutDirNotEmpty` when `outDir` holds anything other than an earlier `seedcord build`, like the `dist` an older version wrote. Delete that folder once after you upgrade. ([#359](https://github.com/seedcord/seedcord/pull/359))
 - `seedcord build` and `codegen` now load the config and the bot through Vite, and `seedcord dev` now loads its config that way too. A `.tsx` command file now compiles with the `jsx` setting in your tsconfig. A `#` in any file or folder path in the project, like `~/code/C#/bot` or `handlers/a#b.ts`, now stops the CLI with `CliPathHasHash`, because Vite cuts a path at its first `#`. ([#365](https://github.com/seedcord/seedcord/pull/365))
 - A `seedcord` command now throws `CliNotProjectInstall` when it runs from an install other than the project's own, like a global `seedcord dev`, and `CliDependencyMissing` when the project has no `seedcord`. Run it through a script in your `package.json` instead. A global `seedcord dev` used to print the bot's logs raw under the TUI, since the bot and the CLI loaded separate copies of seedcord. ([#405](https://github.com/seedcord/seedcord/pull/405))

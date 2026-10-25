@@ -1,6 +1,10 @@
 # @seedcord/tsconfig
 
-## 2.0.7-next.0
+## 3.0.0
+
+### 💥 Breaking
+
+- Requires Node 24.22.1+ on 24.x or Node 26.12.1+ for the October 2026 security fixes. ([`cc7930b`](https://github.com/seedcord/seedcord/commit/cc7930b810b17be66cff49c6cd793b199ef752a3))
 
 ### 🩹 Patch
 

@@ -1,9 +1,10 @@
 # @seedcord/types
 
-## 0.15.0-next.0
+## 0.15.0
 
 ### 💥 Breaking
 
+- Requires Node 24.22.1+ on 24.x or Node 26.12.1+ for the October 2026 security fixes. ([`cc7930b`](https://github.com/seedcord/seedcord/commit/cc7930b810b17be66cff49c6cd793b199ef752a3))
 - Removed `RenameKey`. Use `RenameKeys` from type-fest, as in `RenameKeys<User, { oldKey: 'newKey' }>`. ([`42ecb35`](https://github.com/seedcord/seedcord/commit/42ecb35f66fade0c4b1bfa45541807d70f8ffe28))
 
 ### ✨ Minor

@@ -1,5 +1,15 @@
 # discord-component-embed
 
+## 1.1.0
+
+### 💥 Breaking
+
+- Requires Node 24.22.1+ on 24.x or Node 26.12.1+ for the October 2026 security fixes. ([`cc7930b`](https://github.com/seedcord/seedcord/commit/cc7930b810b17be66cff49c6cd793b199ef752a3))
+
+### 🩹 Patch
+
+- Updated the README. ([`0a2520e`](https://github.com/seedcord/seedcord/commit/0a2520e3ac58ce714dae728c5b9fc6f60d40c7c2))
+
 ## 1.0.0
 
 ### 🎉 Stable

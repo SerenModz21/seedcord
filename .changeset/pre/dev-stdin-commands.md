@@ -1,6 +1,0 @@
----
-'seedcord': minor
-'@seedcord/utils': patch
----
-
-`seedcord dev` now reads `{"do":"restart"}`, `{"do":"disconnect"}`, and `{"do":"quit"}` lines from stdin when it runs without a terminal.

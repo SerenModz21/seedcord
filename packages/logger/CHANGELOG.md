@@ -1,30 +1,17 @@
 # @seedcord/logger
 
-## 0.5.0-next.1
+## 0.5.0
 
 ### 💥 Breaking
 
+- Requires Node 24.22.1+ on 24.x or Node 26.12.1+ for the October 2026 security fixes. ([`cc7930b`](https://github.com/seedcord/seedcord/commit/cc7930b810b17be66cff49c6cd793b199ef752a3))
+- seedcord now needs envapt ≥9.2. Run `pnpm add envapt@latest`, then update your own envapt reads with the [v8 to v9 migration guide](https://envapt.materwelon.dev/docs/migration-v8-to-v9/). ([`99e7d64`](https://github.com/seedcord/seedcord/commit/99e7d6400b19af6db55548fd02c41ac1eb9b1737))
+- `WinstonFileSink` now always writes inside the `logs` folder beside `seedcord.config.ts`, and `filename` takes only a file name. Change `filename: 'logs/bot-{date}.log'` to `filename: 'bot-{date}.log'`. A name with a folder in it throws the new `LoggerFileNameHasFolder`. ([#410](https://github.com/seedcord/seedcord/pull/410))
 - `new WinstonConsoleSink()` without a `format` now prints JSON lines unless the bot runs from a terminal in development. It used to print readable columns everywhere. ([#418](https://github.com/seedcord/seedcord/pull/418))
 
 ### ✨ Minor
 
 - Added a `json-ansi` format for `WinstonConsoleSink` that keeps ANSI color codes in `message`, so a tool that spawns the bot can render them. A bot in development prints it by default when its output is piped or redirected. ([#418](https://github.com/seedcord/seedcord/pull/418))
-
-### 🩹 Patch
-
-#### 📦 Seedcord packages
-
-- `@seedcord/utils` 0.9.0-next.0 → 0.9.0-next.1
-
-## 0.5.0-next.0
-
-### 💥 Breaking
-
-- seedcord now needs envapt 9.1. Run `pnpm add envapt@^9.1`, then update your own envapt reads with the [v8 to v9 migration guide](https://envapt.materwelon.dev/docs/migration-v8-to-v9/). ([`99e7d64`](https://github.com/seedcord/seedcord/commit/99e7d6400b19af6db55548fd02c41ac1eb9b1737))
-- `WinstonFileSink` now always writes inside the `logs` folder beside `seedcord.config.ts`, and `filename` takes only a file name. Change `filename: 'logs/bot-{date}.log'` to `filename: 'bot-{date}.log'`. A name with a folder in it throws the new `LoggerFileNameHasFolder`. ([#410](https://github.com/seedcord/seedcord/pull/410))
-
-### ✨ Minor
-
 - Added `installNodeConsole()` to `@seedcord/logger/node`. It installs only the node console sink, pretty in development and JSON elsewhere. ([`b3d661a`](https://github.com/seedcord/seedcord/commit/b3d661a9ff02ab15c3b40aaea5dd786c79d9bc9c))
 
 ### 🩹 Patch
@@ -38,9 +25,9 @@
 
 #### 📦 Seedcord packages
 
-- `@seedcord/errors` 0.13.0 → 0.14.0-next.0
-- `@seedcord/utils` 0.8.17 → 0.9.0-next.0
-- `@seedcord/types` 0.14.4 → 0.15.0-next.0
+- `@seedcord/errors` 0.14.0-next.0 → 0.14.0
+- `@seedcord/types` 0.15.0-next.0 → 0.15.0
+- `@seedcord/utils` 0.9.0-next.1 → 0.9.0
 
 ## 0.4.4
 

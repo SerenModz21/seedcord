@@ -1,12 +1,16 @@
 # @seedcord/rate-limiter
 
-## 0.1.13-next.0
+## 0.2.0
+
+### 💥 Breaking
+
+- Requires Node 24.22.1+ on 24.x or Node 26.12.1+ for the October 2026 security fixes. ([`cc7930b`](https://github.com/seedcord/seedcord/commit/cc7930b810b17be66cff49c6cd793b199ef752a3))
 
 ### 🩹 Patch
 
 #### 📦 Seedcord packages
 
-- `@seedcord/types` 0.14.4 → 0.15.0-next.0
+- `@seedcord/types` 0.15.0-next.0 → 0.15.0
 
 ## 0.1.12
 

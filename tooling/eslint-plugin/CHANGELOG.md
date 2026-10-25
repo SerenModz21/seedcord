@@ -1,6 +1,10 @@
 # @seedcord/eslint-plugin
 
-## 0.4.4-next.0
+## 0.5.0
+
+### 💥 Breaking
+
+- Requires Node 24.22.1+ on 24.x or Node 26.12.1+ for the October 2026 security fixes. ([`cc7930b`](https://github.com/seedcord/seedcord/commit/cc7930b810b17be66cff49c6cd793b199ef752a3))
 
 ### 🩹 Patch
 
@@ -8,7 +12,7 @@
 
 #### 📦 Seedcord packages
 
-- `eslint-plugin-discordjs` 0.1.7 → 0.1.8-next.0
+- `eslint-plugin-discordjs` 0.1.8-next.0 → 0.2.0
 
 ## 0.4.3
 

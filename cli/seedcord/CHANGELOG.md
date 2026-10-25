@@ -1,22 +1,10 @@
 # seedcord
 
-## 0.22.0-next.1
-
-### ✨ Minor
-
-- `seedcord dev` now reads `{"do":"restart"}`, `{"do":"disconnect"}`, and `{"do":"quit"}` lines from stdin when it runs without a terminal. ([#418](https://github.com/seedcord/seedcord/pull/418))
-
-### 🩹 Patch
-
-#### 📦 Seedcord packages
-
-- `@seedcord/utils` 0.9.0-next.0 → 0.9.0-next.1
-- `@seedcord/logger` 0.5.0-next.0 → 0.5.0-next.1
-
-## 0.22.0-next.0
+## 0.22.0
 
 ### 💥 Breaking
 
+- Requires Node 24.22.1+ on 24.x or Node 26.12.1+ for the October 2026 security fixes. ([`cc7930b`](https://github.com/seedcord/seedcord/commit/cc7930b810b17be66cff49c6cd793b199ef752a3))
 - `seedcord build` now bundles the bot with Vite and empties `outDir` before it writes. It throws `CliBuildOutDirNotEmpty` when `outDir` holds anything other than an earlier `seedcord build`, like the `dist` an older version wrote. Delete that folder once after you upgrade. ([#359](https://github.com/seedcord/seedcord/pull/359))
 - `seedcord build` now runs your `instance` file. Set the env that file reads at construction in CI too, because a build without it now fails. ([#359](https://github.com/seedcord/seedcord/pull/359))
 - `seedcord build` now type checks with the `tsconfig.json` beside your config and no longer picks up `tsconfig.build.json`. Set `build.tsconfig` to keep using it. ([#359](https://github.com/seedcord/seedcord/pull/359))
@@ -31,7 +19,7 @@
 - `seedcord commands clean` now throws `CoreDiscordReadFailed` on a guild it can't read, before it deletes anything. It used to skip that guild with a warning and clean the rest. ([#396](https://github.com/seedcord/seedcord/pull/396))
 - The command scan in `seedcord codegen`, `dev`, `build` and `commands` now throws `CorePathUnreadable` on any folder under your commands path it can't read. It used to skip a subfolder with a warning. A class with `@RegisterCommand` whose component is not a command now throws the new `CliCommandNotACommand`. ([#396](https://github.com/seedcord/seedcord/pull/396))
 - A relative folder path in the bot config, a plugin's `dir`, Kysely's migrations folder, and a folder passed to `importFiles` now resolve against `root` from `seedcord.config.ts`. With `root: './src'`, write `interactions: { path: './handlers' }` where you wrote `'./src/handlers'`. Outside `seedcord dev` and the built output, like in a test or a `tsx` run, a relative path now throws `CoreDirectoryRootUnknown` while an absolute path like `resolve(import.meta.dirname, './handlers')` works as before. ([#382](https://github.com/seedcord/seedcord/pull/382))
-- seedcord now needs envapt 9.1. Run `pnpm add envapt@^9.1`, then update your own envapt reads with the [v8 to v9 migration guide](https://envapt.materwelon.dev/docs/migration-v8-to-v9/). ([`99e7d64`](https://github.com/seedcord/seedcord/commit/99e7d6400b19af6db55548fd02c41ac1eb9b1737))
+- seedcord now needs envapt ≥9.2. Run `pnpm add envapt@latest`, then update your own envapt reads with the [v8 to v9 migration guide](https://envapt.materwelon.dev/docs/migration-v8-to-v9/). ([`99e7d64`](https://github.com/seedcord/seedcord/commit/99e7d6400b19af6db55548fd02c41ac1eb9b1737))
 - A mistake in your own code or command line now throws `SeedcordTypeError`, like two handlers on one route or a bad CLI flag. A zero `Cooldown` and other numbers out of range get `SeedcordRangeError`. An env var with a bad value is reported as a plain `SeedcordError`. ([#397](https://github.com/seedcord/seedcord/pull/397))
 - Error codes that cover the same failure are now merged, like the five match-arm codes into `MatchArmMissing`, and the codes of removed features, like `CliBootstrapWriteFailed`, are gone. Many of the rest have a new number, and some old numbers now belong to a different code. Match on the `SeedcordErrorCode` member and never on the raw number. ([#397](https://github.com/seedcord/seedcord/pull/397))
 - `importFiles`, and with it every handler, command, subscriber, service and migration folder, now loads `.tsx`, `.mts`, `.jsx` and `.mjs` files as well as `.ts` and `.js`. A stray `.mjs` file left in a handler folder starts loading too. `seedcord build` writes each one as a `.js` file and throws `CoreDuplicateName` for two files that would build to the same one, like `Roll.ts` and `Roll.tsx`. ([#410](https://github.com/seedcord/seedcord/pull/410))
@@ -64,6 +52,7 @@
 - In a narrow terminal, `seedcord dev` now removes the seconds, then the label, then the clock from each log line to give the message room. Press `p` to switch them between fitting the width, full, and hidden, and the setting carries over to the next run. ([#412](https://github.com/seedcord/seedcord/pull/412))
 - The `seedcord dev` sidebar now shows whether the bot runs on the edge or a server, beside the transport version. ([#391](https://github.com/seedcord/seedcord/pull/391))
 - `seedcord dev` now skips deploying the global commands, or one guild's commands, when they haven't changed since the last deploy and Discord has commands with the same names. It reads their ids from Discord, and stores the last deploy in `.seedcord/deployed-commands.json`. ([#398](https://github.com/seedcord/seedcord/pull/398))
+- `seedcord dev` now reads `{"do":"restart"}`, `{"do":"disconnect"}`, and `{"do":"quit"}` lines from stdin when it runs without a terminal. ([#418](https://github.com/seedcord/seedcord/pull/418))
 
 ### 🩹 Patch
 
@@ -91,12 +80,12 @@
 
 #### 📦 Seedcord packages
 
-- `@seedcord/core` 0.10.0 → 0.11.0-next.0
-- `@seedcord/errors` 0.13.0 → 0.14.0-next.0
-- `@seedcord/logger` 0.4.4 → 0.5.0-next.0
-- `@seedcord/utils` 0.8.17 → 0.9.0-next.0
-- `@seedcord/types` 0.14.4 → 0.15.0-next.0
-- `@seedcord/event-emitter` 0.1.8 → 0.1.9-next.0
+- `@seedcord/core` 0.11.0-next.0 → 0.11.0
+- `@seedcord/errors` 0.14.0-next.0 → 0.14.0
+- `@seedcord/event-emitter` 0.1.9-next.0 → 0.2.0
+- `@seedcord/logger` 0.5.0-next.1 → 0.5.0
+- `@seedcord/types` 0.15.0-next.0 → 0.15.0
+- `@seedcord/utils` 0.9.0-next.1 → 0.9.0
 
 ## 0.21.5
 
