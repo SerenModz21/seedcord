@@ -4,6 +4,7 @@ import { BotLayout, withoutQuery } from '@seedcord/utils/internal';
 import { createBuilder } from 'vite';
 
 import { BOT_ENVIRONMENT, botEnvironment } from '#core/modules/botEnvironment';
+import { envBootstrap } from '#core/modules/envBootstrap';
 
 import { assertOutDirSafe } from './assertOutDirSafe';
 import { isListedFileId, listedFileOf } from './builtFiles';
@@ -28,7 +29,8 @@ function outputChunks(result: Awaited<ReturnType<ViteBuilder['build']>>): Rolldo
 function outputName(moduleId: string | null | undefined, layout: BotLayout): string {
     if (isServerEntry(moduleId)) return ENTRY_FILE_NAME;
     if (moduleId && isListedFileId(moduleId)) return `_virtual/files${layout.listedKeyOf(listedFileOf(moduleId))}.js`;
-    return `[name]${BotLayout.builtExtension(withoutQuery(moduleId ?? ''))}`;
+    if (moduleId && layout.holds(moduleId)) return BotLayout.builtPath(layout.keyOf(withoutQuery(moduleId))).slice(1);
+    return '_virtual/[name]-[hash].js';
 }
 
 export abstract class ServerBuild<Target extends ResolvedServerTarget = ResolvedServerTarget> extends TargetBuild {
@@ -58,23 +60,27 @@ export abstract class ServerBuild<Target extends ResolvedServerTarget = Resolved
             rootKey: BotLayout.keyUnder(configDir, root),
             configFile: BotLayout.keyUnder(outDir, config.configFile)
         };
+        const fileName = (chunk: Rolldown.PreRenderedChunk): string => outputName(chunk.facadeModuleId, layout);
 
-        const result = await this.buildBot([serverEntry(builtFiles, importBot), pinModulePaths(layout)], {
-            outDir,
-            emptyOutDir: true,
-            sourcemap: true,
-            minify: false,
-            target: NODE_TARGET,
-            rolldownOptions: {
-                input: ENTRY_ID,
-                output: {
-                    format: 'esm',
-                    preserveModules: true,
-                    preserveModulesRoot: root,
-                    entryFileNames: (chunk) => outputName(chunk.facadeModuleId, layout)
+        const result = await this.buildBot(
+            [envBootstrap({ runtime: 'node' }), serverEntry(builtFiles, importBot), pinModulePaths(layout)],
+            {
+                outDir,
+                emptyOutDir: true,
+                sourcemap: true,
+                minify: false,
+                target: NODE_TARGET,
+                rolldownOptions: {
+                    input: [ENTRY_ID, ...(await files.modulePaths())],
+                    preserveEntrySignatures: 'strict',
+                    output: {
+                        format: 'esm',
+                        entryFileNames: fileName,
+                        chunkFileNames: fileName
+                    }
                 }
             }
-        });
+        );
         return bundleStats(outputChunks(result), layout, join(outDir, ENTRY_FILE_NAME));
     }
 
