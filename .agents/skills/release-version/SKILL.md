@@ -102,7 +102,7 @@ vp pm dist-tag ls seedcord
 
 - Don't run `changeset pre exit` or `cs:version` on `next` to make a stable release. Graduate on `main` (Flow 2). The gate refuses a non-pre publish on `next`.
 - Don't run `changeset version` directly. Node cannot load the TypeScript changelog module without `--import tsx`, and the changelogs skip the tidy pass.
-- Don't run `npm publish` or `pnpm publish` by hand, except for a new package's first release. CI publishes through changesets.
+- Don't run `npm publish`, `pnpm publish` or `vp pm publish` by hand, except for a new package's first release. CI publishes through changesets.
 - Don't push `main` while it is in pre mode. Exit pre mode first.
 - Don't let a new changeset land between versioning and the publish. The gate skips the publish while one is pending, and the next versioning run bumps past the skipped version.
 - Don't rename `.github/workflows/publish.yml`. Its filename is bound to the npm OIDC trust.
