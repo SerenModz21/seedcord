@@ -58,9 +58,9 @@
         "provenance": true
     },
     "scripts": {
-        "dev": "tsx src/cli.ts",
-        "preview": "tsx playground/preview.tsx",
-        "preview:prompts": "tsx playground/prompts.ts",
+        "dev": "vpx src/cli.ts",
+        "preview": "vpx playground/preview.tsx",
+        "preview:prompts": "vpx playground/prompts.ts",
         "build": "vp pack",
         "clean": "rm -rf dist",
         "lint": "eslint '**/*.{ts,tsx}' 'bin/**/*.mjs' --cache --no-error-on-unmatched-pattern",

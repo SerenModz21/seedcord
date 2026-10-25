@@ -45,7 +45,7 @@
         "provenance": true
     },
     "scripts": {
-        "dev": "tsx src/index.ts",
+        "dev": "vpx src/index.ts",
         "build": "vp pack",
         "clean": "rm -rf dist",
         "lint": "eslint '**/*.{ts,tsx}' --cache --no-error-on-unmatched-pattern",
@@ -68,7 +68,6 @@
         "discord.js": "catalog:peer",
         "handlebars": "^4.7.9",
         "package-manager-detector": "^1.8.0",
-        "tsx": "catalog:deps",
         "typescript": "catalog:peer",
         "vitest": "catalog:test"
     },
