@@ -9,7 +9,6 @@
             "#model/*": ["./src/model/*"],
             "#builders/*": ["./src/builders/*"],
             "#routing/*": ["./src/routing/*"],
-            "#services/*": ["./src/services/*"],
             "#transformers/*": ["./src/transformers/*"],
             "#packages/*": ["./src/packages/*"],
             "#remote/*": ["./src/remote/*"]

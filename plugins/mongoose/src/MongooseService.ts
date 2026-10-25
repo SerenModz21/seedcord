@@ -1,5 +1,5 @@
 import { SeedcordErrorCode } from '@seedcord/errors';
-import { SeedcordError } from '@seedcord/errors/internal';
+import { SeedcordTypeError } from '@seedcord/errors/internal';
 
 import { ServiceMetadataKey } from './decorators/RegisterMongooseService';
 
@@ -35,13 +35,21 @@ export abstract class MongooseService<Doc extends MongooseDocument = MongooseDoc
     public constructor(
         protected readonly db: Mongoose,
         protected readonly core: CoreBase,
-        public readonly model: mongoose.Model<Doc>
+        public readonly model: mongoose.Model<
+            Doc,
+            {},
+            {},
+            mongoose.ObtainSchemaGeneric<mongoose.Schema<Doc>, 'TVirtuals'>
+        >
     ) {
         const ctor = this.constructor;
 
         const key = Reflect.getMetadata(ServiceMetadataKey, ctor) as string | undefined;
         if (!key) {
-            throw new SeedcordError(SeedcordErrorCode.PluginMongooseServiceDecoratorMissing, [ctor.name]);
+            throw new SeedcordTypeError(SeedcordErrorCode.PluginServiceDecoratorMissing, [
+                '@RegisterMongooseService',
+                ctor.name
+            ]);
         }
 
         db._register(key, this);

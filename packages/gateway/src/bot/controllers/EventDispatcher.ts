@@ -2,8 +2,6 @@
 import { DispatchContext } from '@seedcord/core';
 import { HmrModuleHandler } from '@seedcord/core/hmr';
 import {
-    areRoutes,
-    asError,
     EventMetadataKey,
     EventMiddlewareMetadataKey,
     eventResultFor,
@@ -13,12 +11,12 @@ import {
     runAfter,
     runHandlerGates
 } from '@seedcord/core/internal';
-import { drainInFlight } from '@seedcord/core/node/internal';
+import { InFlight } from '@seedcord/core/node/internal';
 import { SeedcordErrorCode, paint } from '@seedcord/errors';
 import { SeedcordError } from '@seedcord/errors/internal';
 import { Logger } from '@seedcord/logger';
-import { formatFilePath, hasKeys } from '@seedcord/utils';
-import { traverseDirectory } from '@seedcord/utils/node';
+import { formatFilePath, hasKeys, importFiles } from '@seedcord/utils';
+import { asError, isStringArray } from '@seedcord/utils/internal';
 import { Envapter } from 'envapt';
 
 import { eventMiddlewareMetaOf } from '#bDecorators/Middlewares';
@@ -68,8 +66,7 @@ export class EventDispatcher implements Initializeable, HmrAware {
     private readonly executedOnceHandlers = new Set<EventHandlerConstructor>();
     private readonly attachedEvents = new Set<keyof ClientEvents>();
 
-    private readonly inFlight = new Set<Promise<void>>();
-    private draining = false;
+    private readonly inFlight = new InFlight(this.logger, 'Events');
 
     // a reload reports on the hmr channel
     private loading = false;
@@ -168,24 +165,24 @@ export class EventDispatcher implements Initializeable, HmrAware {
     }
 
     private async loadHandlers(dir: string): Promise<void> {
-        await traverseDirectory(dir, (fullPath, relativePath, imported) => {
+        for await (const { fullPath, relativePath, imported } of importFiles(dir)) {
             for (const val of Object.values(imported)) {
                 if (!this.isEventHandlerClass(val)) continue;
                 this.registerHandler(val, relativePath);
                 this.hmrHandler?.trackHandler(fullPath, val);
             }
-        });
+        }
     }
 
     private async loadMiddlewares(dir: string): Promise<void> {
-        await traverseDirectory(dir, (fullPath, relativePath, imported) => {
+        for await (const { fullPath, relativePath, imported } of importFiles(dir)) {
             for (const val of Object.values(imported)) {
                 if (!this.isMiddlewareClass(val)) continue;
 
                 this.registerMiddleware(val, relativePath);
                 this.hmrHandler?.trackMiddleware(fullPath, val);
             }
-        });
+        }
     }
 
     /** @internal */
@@ -291,7 +288,7 @@ export class EventDispatcher implements Initializeable, HmrAware {
                 register(entry.event, entry.frequency);
             }
         } else {
-            const names = areRoutes(raw) ? raw : typeof raw === 'string' ? [raw] : [];
+            const names = isStringArray(raw) ? raw : typeof raw === 'string' ? [raw] : [];
 
             for (const name of names) {
                 register(name as keyof ClientEvents, 'on');
@@ -318,23 +315,22 @@ export class EventDispatcher implements Initializeable, HmrAware {
         );
 
         this.core.bot.client.on(eventName, (...args: ClientEvents[typeof eventName]) => {
-            if (this.draining) return;
+            if (this.inFlight.closed) return;
             const run = this.processEvent(eventName, args).catch((caught: unknown) => {
                 const error = asError(caught);
                 this.logger.error(`[${paint.coral.bold('UNHANDLED ERROR AT ROOT')}] ${error.name}`, error.stack);
                 this.core.bus[PublishDefault]('unhandledEventError', { error });
             });
-            this.inFlight.add(run);
-            void run.finally(() => this.inFlight.delete(run));
+            this.inFlight.track(run);
         });
     }
 
     public stopAccepting(): void {
-        this.draining = true;
+        this.inFlight.close();
     }
 
     public drain(timeoutMs: number): Promise<void> {
-        return drainInFlight(this.inFlight, timeoutMs, this.logger, 'Events');
+        return this.inFlight.drain(timeoutMs);
     }
 
     private async processEvent<KeyOfEvents extends keyof ClientEvents>(

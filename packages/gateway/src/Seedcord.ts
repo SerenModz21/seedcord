@@ -1,14 +1,19 @@
 import { Bus } from '@seedcord/core';
-import { bindBotColor, busLoggerOf, HmrManager } from '@seedcord/core/internal';
-import { CoordinatedShutdown, CoordinatedStartup, Pluggable } from '@seedcord/core/node';
-import { HealthCheck, shutdownOf, StartupPhase, SubscriberLoader } from '@seedcord/core/node/internal';
-import { LoggerChannelRegistry } from '@seedcord/logger';
-import { installNodeDefaults } from '@seedcord/logger/node';
+import {
+    attachmentsOf,
+    bindBotColor,
+    busLoggerOf,
+    connectDevChannel,
+    HmrManager,
+    SubscriberLoader
+} from '@seedcord/core/internal';
+import { CoordinatedShutdown, CoordinatedStartup, ServerHost } from '@seedcord/core/node';
+import { HealthCheck, shutdownOf, StartupPhase } from '@seedcord/core/node/internal';
 import { MemoryRateLimiter } from '@seedcord/rate-limiter';
 import { HostAugmentTarget, HostVersion, SeedcordBrand } from '@seedcord/types/internal';
 import { Envapter } from 'envapt';
 
-import { botLoggerOf, Bot, initBot } from './bot/Bot';
+import { Bot } from './bot/Bot';
 import { version as packageVersion } from './version';
 
 import type { GatewayConfig } from './interfaces/Config';
@@ -21,7 +26,7 @@ import type { SeedcordInstance } from '@seedcord/types/internal';
  * coordinated startup and shutdown. Attach plugins with `attach()`.
  */
 // an `implements Core` clause breaks a bot's full lib check once codegen adds its plugins to Core
-export class Seedcord extends Pluggable<'gateway', 'server'> implements SeedcordInstance {
+export class Seedcord extends ServerHost<'gateway'> implements SeedcordInstance {
     // the CLI reads these to detect and augment the instance
     /** @internal */
     public readonly [SeedcordBrand] = true;
@@ -30,13 +35,13 @@ export class Seedcord extends Pluggable<'gateway', 'server'> implements Seedcord
     /** @internal */
     public readonly [HostVersion]: string = packageVersion;
 
-    private readonly healthCheck?: HealthCheck | undefined;
-    private readonly hmrManager: HmrManager;
+    readonly #healthCheck?: HealthCheck | undefined;
+    readonly #hmrManager: HmrManager;
 
     /** @see {@link Bus} */
     public readonly bus: Bus;
 
-    private readonly subscribers: SubscriberLoader;
+    readonly #subscribers: SubscriberLoader;
 
     /** @see {@link Bot} */
     public readonly bot: Bot;
@@ -54,24 +59,24 @@ export class Seedcord extends Pluggable<'gateway', 'server'> implements Seedcord
 
     /**
      * @param config - Bot configuration including paths and Discord client options
-     * @throws A **SeedcordError** When attempting to create multiple instances (singleton)
+     * @throws A **SeedcordError** when another `Seedcord` exists in this process and has not shut down.
+     * @throws A **SeedcordError** when the running Node or Bun is older than the range in `engines`.
      */
     constructor(public readonly config: GatewayConfig) {
-        super(new CoordinatedShutdown(config.lifecycle?.shutdownDeadline), new CoordinatedStartup());
+        super('gateway', new CoordinatedShutdown(config.lifecycle?.shutdownDeadline), new CoordinatedStartup());
 
-        installNodeDefaults(config.logger);
         bindBotColor(() => this.config.botColor);
 
-        this.hmrManager = new HmrManager();
-        this.hmrManager.init();
+        this.#hmrManager = new HmrManager();
+        this.#hmrManager.init(connectDevChannel());
         this.bus = new Bus(this);
-        this.subscribers = new SubscriberLoader(this.bus, config.subscribers.path);
+        this.#subscribers = new SubscriberLoader(this.bus, config.subscribers.path);
         this.bot = new Bot(this);
         this.rest = this.bot.client.rest;
         this.rateLimiter = config.store ?? new MemoryRateLimiter();
-        this.healthCheck = HealthCheck.fromOption(shutdownOf(this), config.healthCheck);
+        this.#healthCheck = HealthCheck.fromOption(shutdownOf(this), config.healthCheck);
 
-        this.registerStartupTasks();
+        this.#registerStartupTasks();
     }
 
     /** The bot's discord username, populated after login. */
@@ -79,36 +84,23 @@ export class Seedcord extends Pluggable<'gateway', 'server'> implements Seedcord
         return this.bot.client.user?.username;
     }
 
-    protected static override reset(host?: object): boolean {
-        if (!super.reset(host)) return false;
-        // reset() would drop the dev TUI's log sink
-        LoggerChannelRegistry.instance.configure({});
-        return true;
-    }
-
-    private registerStartupTasks(): void {
-        if (Envapter.isDevelopment || Envapter.isTest) this.registerHmrAwareModules();
+    #registerStartupTasks(): void {
+        if (Envapter.isDevelopment || Envapter.isTest) this.#registerHmrAwareModules();
 
         this.startup.addTask(StartupPhase.Configuration, 'bus-initialization', async () => {
             busLoggerOf(this.bus).utils.initialization('Subscribers', 'start');
-            await this.subscribers.init();
+            await this.#subscribers.init();
             busLoggerOf(this.bus).utils.initialization('Subscribers', 'end');
         });
+    }
 
-        this.startup.addTask(StartupPhase.Login, 'bot-initialization', async () => {
-            botLoggerOf(this.bot).utils.initialization('Bot', 'start');
-            await initBot(this.bot);
-            botLoggerOf(this.bot).utils.initialization('Bot', 'end');
-        });
-
-        const { healthCheck } = this;
-        if (healthCheck) {
-            this.startup.addTask(StartupPhase.Ready, 'health-check', async () => {
-                healthCheck.logger.utils.initialization('HealthCheck', 'start');
-                await healthCheck.init();
-                healthCheck.logger.utils.initialization('HealthCheck', 'end');
-            });
-        }
+    /** @internal */
+    protected override async openHealth(): Promise<void> {
+        const healthCheck = this.#healthCheck;
+        if (!healthCheck) return;
+        healthCheck.logger.utils.initialization('HealthCheck', 'start');
+        await healthCheck.init();
+        healthCheck.logger.utils.initialization('HealthCheck', 'end');
     }
 
     /**
@@ -116,24 +108,16 @@ export class Seedcord extends Pluggable<'gateway', 'server'> implements Seedcord
      *
      * @returns This Seedcord instance when initialized
      */
-    public async start(): Promise<this> {
-        try {
-            await super.init();
-        } catch (caught) {
-            // shutdown releases any resource opened before the failure, then rethrow
-            await shutdownOf(this).run(1, false);
-            Seedcord.reset(this);
-            throw caught;
-        }
-        return this;
+    public start(): Promise<this> {
+        return this.init();
     }
 
-    private registerHmrAwareModules(): void {
+    #registerHmrAwareModules(): void {
         this.startup.addTask(StartupPhase.Configuration, 'hmr-registration', async () => {
-            this.hmrManager.register(this.bot);
-            this.hmrManager.register(this.subscribers);
-            for (const plugin of this.plugins) {
-                this.hmrManager.register(plugin);
+            this.#hmrManager.register(this.bot);
+            this.#hmrManager.register(this.#subscribers);
+            for (const { instance } of attachmentsOf(this)) {
+                this.#hmrManager.register(instance);
             }
             await Promise.resolve();
         });

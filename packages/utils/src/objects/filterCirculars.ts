@@ -126,16 +126,17 @@ function json<ObjType, Marker extends string>(
     marker: Marker,
     logger?: ILogger
 ): JsonifyWithCirculars<ObjType, Marker> | UnserializableValue {
-    const seen = new WeakSet<object>();
+    const path: unknown[] = [];
     let json: string | undefined;
 
     try {
-        json = JSON.stringify(value, (_k: string, v: unknown) => {
+        // stringify calls the replacer with `this` set to the object that holds the key
+        json = JSON.stringify(value, function (this: unknown, _k: string, v: unknown) {
             if (typeof v === 'bigint') return v.toString();
+            while (path.length > 0 && path.at(-1) !== this) path.pop();
             if (typeof v === 'object' && v !== null) {
-                const obj = v;
-                if (seen.has(obj)) return marker;
-                seen.add(obj);
+                if (path.includes(v)) return marker;
+                path.push(v);
             }
             return v;
         });
@@ -182,28 +183,32 @@ function decycle<ObjType, Marker extends string = '[Circular]'>(
         if (seen.has(obj)) return marker;
         seen.add(obj);
 
-        if (obj instanceof Date) return obj.toISOString();
-        if (obj instanceof RegExp) return obj.toString();
+        try {
+            if (obj instanceof Date) return obj.toISOString();
+            if (obj instanceof RegExp) return obj.toString();
 
-        if (Array.isArray(obj)) {
-            return obj.map((item) => recur(item));
+            if (Array.isArray(obj)) {
+                return obj.map((item) => recur(item));
+            }
+
+            if (obj instanceof Map) {
+                return Array.from(obj, ([k, v]) => [recur(k), recur(v)]);
+            }
+
+            if (obj instanceof Set) {
+                return Array.from(obj, (v) => recur(v));
+            }
+
+            const out: Record<string, unknown> = {};
+            for (const [k, v] of Object.entries(obj)) {
+                if (typeof v === 'function') continue;
+                out[k] = recur(v);
+            }
+
+            return out;
+        } finally {
+            seen.delete(obj);
         }
-
-        if (obj instanceof Map) {
-            return Array.from(obj, ([k, v]) => [recur(k), recur(v)]);
-        }
-
-        if (obj instanceof Set) {
-            return Array.from(obj, (v) => recur(v));
-        }
-
-        const out: Record<string, unknown> = {};
-        for (const [k, v] of Object.entries(obj)) {
-            if (typeof v === 'function') continue;
-            out[k] = recur(v);
-        }
-
-        return out;
     };
 
     return recur(input) as JsonifyWithCirculars<ObjType, Marker>;

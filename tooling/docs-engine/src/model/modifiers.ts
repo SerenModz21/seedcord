@@ -1,4 +1,4 @@
-import { DocKind } from '#model/kinds';
+import { DocKind } from '@seedcord/docs-search';
 
 import type { DocFlags } from '#src/types';
 

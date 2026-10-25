@@ -4,12 +4,16 @@ node_modules/
 # debug
 npm-debug.*
 
+# pnpm release:preview
+/release.md
+
 # local env files
 .env*
 !.env.example
 
 # typescript
 *.tsbuildinfo
+worker-configuration.d.ts
 
 # misc
 generated/
@@ -21,6 +25,10 @@ certs/
 
 # Ignore build output directories
 dist/
+*.bun-build
+.wrangler/
+.cloudflare/
+.seedcord/
 
 # Ignore IDE specific files
 **/.idea
@@ -40,9 +48,11 @@ dist/
 
 # scratch projects a test compiles, removed in afterAll unless the run dies
 **/.build-fixture
+**/.root-fixture
 
-# the docs-engine suite copies the docs-generator mock here so the two never share a dist
+# the docs-engine suite copies the docs-generator mocks here so the two never share a dist
 /tooling/docs-engine/tests/mock/
+/tooling/docs-engine/tests/mock-base/
 
 # Package manager caches
 .pnpm-store/
@@ -53,6 +63,7 @@ dist/
 *.log
 logs/
 Logs/
+!cli/seedcord/tests/fixtures/http-bot/src/logs/
 
 # ESLint cache
 .eslintcache

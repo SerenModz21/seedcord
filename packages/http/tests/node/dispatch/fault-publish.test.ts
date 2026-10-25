@@ -2,11 +2,13 @@ import 'reflect-metadata';
 
 import { InteractionKind, Notice } from '@seedcord/core';
 import { interactionMiddleware, MiddlewareRegistry } from '@seedcord/core/internal';
+import { LoggerChannelRegistry } from '@seedcord/logger';
 import { Envapter, PortableSource } from 'envapt';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import { SlashHandler } from '#handlers/interaction/SlashHandler';
-import { createCore, dispatchInteraction } from '#src/dispatch/dispatchInteraction';
+import { dispatchInteraction } from '#src/dispatch/dispatchInteraction';
+import { testCore } from '#tests/helpers/core';
 import { nullPathConfig, VALID_TOKEN } from '#tests/helpers/fixtures';
 
 import { slashPayload } from './harness';
@@ -16,19 +18,7 @@ import type { ValidInteractionTypes } from '#handlers/interactionTypes';
 import type { Core } from '#interfaces/Core';
 import type { ResolvedRoute } from '#src/dispatch/resolve';
 import type { SubscriptionData } from '@seedcord/core';
-import type { ReplyResponse } from '@seedcord/types';
-
-vi.mock('@discordjs/rest', async (importOriginal) => {
-    class FakeRest {
-        public post = vi.fn().mockResolvedValue({ resource: { message: { id: 'm-1' } } });
-        public patch = vi.fn().mockResolvedValue({ id: 'm-1' });
-
-        public setToken(): this {
-            return this;
-        }
-    }
-    return { ...(await importOriginal<object>()), REST: FakeRest };
-});
+import type { LogRecord, ReplyResponse } from '@seedcord/types';
 
 class Reported extends Notice {
     public override report = true;
@@ -73,7 +63,7 @@ interface Published {
 }
 
 function watched(): { core: Core; published: Published } {
-    const core = createCore(nullPathConfig, VALID_TOKEN);
+    const core = testCore(nullPathConfig, VALID_TOKEN);
     const published: Published = { handled: [], unknown: [] };
     core.bus.on('handledException', (data) => published.handled.push(data));
     core.bus.on('unknownException', (data) => published.unknown.push(data));
@@ -122,12 +112,15 @@ describe('http fault publishing', () => {
         });
     });
 
-    it('publishes unknownException for a raw throw', async () => {
+    it('publishes unknownException for a raw throw and logs its stack', async () => {
+        const logged: LogRecord[] = [];
+        using _capture = LoggerChannelRegistry.instance.installSink({ kind: 'capture', onLog: (r) => logged.push(r) });
         const { handled, unknown } = await faultsFor(BoomHandler);
 
         expect(handled).toHaveLength(0);
         expect(unknown).toHaveLength(1);
         expect(unknown[0]?.error.message).toBe('handler exploded');
+        expect(logged.find((record) => record.args?.includes(unknown[0]?.error))).toBeDefined();
     });
 
     it('names the dispatch route as the fault origin, so a subscriber can group faults', async () => {

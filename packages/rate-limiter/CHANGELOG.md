@@ -1,5 +1,13 @@
 # @seedcord/rate-limiter
 
+## 0.1.13-next.0
+
+### 🩹 Patch
+
+#### 📦 Seedcord packages
+
+- `@seedcord/types` 0.14.4 → 0.15.0-next.0
+
 ## 0.1.12
 
 ### 🩹 Patch

@@ -1,8 +1,8 @@
-import { mkdtemp, mkdir, rm, writeFile } from 'node:fs/promises';
+import { mkdtempDisposable, mkdir, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it } from 'vitest';
 
 import { resolveDocEntryPoints } from '#src/workspace';
 
@@ -23,11 +23,9 @@ const manifestWith = (exports: PackageManifest['exports']): PackageManifest => (
 });
 
 beforeEach(async () => {
-    packageDir = await mkdtemp(join(tmpdir(), 'doc-entries-'));
-});
-
-afterEach(async () => {
-    await rm(packageDir, { recursive: true, force: true });
+    const tmp = await mkdtempDisposable(join(tmpdir(), 'doc-entries-'));
+    packageDir = tmp.path;
+    return () => tmp.remove();
 });
 
 describe('resolveDocEntryPoints', () => {
@@ -69,6 +67,49 @@ describe('resolveDocEntryPoints', () => {
         const [entry] = await resolveDocEntryPoints(packageDir, manifest);
 
         expect(entry?.sourceEntry).toBe('src/hmr.index.ts');
+    });
+
+    it('resolves a runtime condition as its own entry beside the default one', async () => {
+        await writeDeclaration('dist/index.d.mts');
+        await writeDeclaration('dist/workerd.index.d.mts');
+        await writeDeclaration('src/workerd.index.ts');
+        const manifest = manifestWith({
+            '.': {
+                workerd: { types: './dist/workerd.index.d.mts' },
+                import: { types: './dist/index.d.mts' }
+            }
+        });
+
+        const entries = await resolveDocEntryPoints(packageDir, manifest);
+
+        expect(entries.map(({ subpath, condition, sourceEntry }) => ({ subpath, condition, sourceEntry }))).toEqual([
+            { subpath: '.', condition: undefined, sourceEntry: undefined },
+            { subpath: '.', condition: 'workerd', sourceEntry: 'src/workerd.index.ts' }
+        ]);
+    });
+
+    // the build's own classes would get no source links
+    it('throws when a runtime build has no source file to scan', async () => {
+        await writeDeclaration('dist/index.d.mts');
+        await writeDeclaration('dist/workerd.index.d.mts');
+        const manifest = manifestWith({
+            '.': { workerd: { types: './dist/workerd.index.d.mts' }, import: { types: './dist/index.d.mts' } }
+        });
+
+        await expect(resolveDocEntryPoints(packageDir, manifest)).rejects.toThrow(
+            /@seedcord\/fixture exports "\." under "workerd" as \.\/dist\/workerd\.index\.d\.mts, and no src file matches it/
+        );
+    });
+
+    it('skips a condition that points at the default declaration', async () => {
+        await writeDeclaration('dist/index.d.mts');
+        const manifest = manifestWith({
+            '.': { development: { types: './dist/index.d.mts' }, import: { types: './dist/index.d.mts' } }
+        });
+
+        const entries = await resolveDocEntryPoints(packageDir, manifest);
+
+        expect(entries.map(({ condition }) => condition)).toEqual([undefined]);
     });
 
     it('sorts the root entry ahead of every subpath', async () => {

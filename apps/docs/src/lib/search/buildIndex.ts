@@ -1,12 +1,18 @@
 import { buildEntityHref, buildPackageBasePath, kindName, memberFragment } from '@seedcord/docs-engine';
-import { DocKind } from '@seedcord/docs-engine/client';
+import { RuntimeBuild } from '@seedcord/docs-generator/runtime-build';
+import { DocKind } from '@seedcord/docs-search';
 
 import { loadDocsCatalog } from '#lib/docs/catalog';
 import { getDocsEngine } from '#lib/docs/engine';
 
-import type { SearchIndexEntry, SearchPackage } from './types';
-import type { CommandAction, SearchResultKind } from '#components/search/command-palette/types';
-import type { DocNode, DocSearchEntry, VersionedDocsEngine } from '@seedcord/docs-engine';
+import type { DocNode, VersionedDocsEngine } from '@seedcord/docs-engine';
+import type {
+    DocSearchEntry,
+    SearchAction,
+    SearchIndexEntry,
+    SearchPackage,
+    SearchResultKind
+} from '@seedcord/docs-search';
 
 const RESULT_KINDS: Partial<Record<number, SearchResultKind>> = {
     [DocKind.Class]: 'class',
@@ -36,7 +42,10 @@ const encodeSlug = (slug: string): string => slug.split('/').map(encodeURICompon
 
 function breadcrumb(entry: DocSearchEntry): string {
     const pkg = entry.packageVersion ? `${entry.packageName}@${entry.packageVersion}` : entry.packageName;
-    const qualified = entry.qualifiedName && entry.qualifiedName !== entry.name ? entry.qualifiedName : entry.slug;
+    const qualified =
+        entry.qualifiedName && entry.qualifiedName !== entry.name
+            ? new RuntimeBuild(entry.condition).label(entry.qualifiedName)
+            : entry.slug;
     return [pkg, qualified].filter(Boolean).join(' · ');
 }
 
@@ -101,9 +110,9 @@ class SearchLinks {
 function toIndexEntry(links: SearchLinks, entry: DocSearchEntry): SearchIndexEntry {
     const { summary, value, ...scored } = entry;
     const kind = resultKind(entry.kind);
-    const action: CommandAction = {
+    const action: SearchAction = {
         id: `${entry.packageName}:${entry.slug}:${entry.kind}`,
-        label: entry.name,
+        label: entry.qualifiedName === entry.name ? new RuntimeBuild(entry.condition).label(entry.name) : entry.name,
         path: breadcrumb(entry),
         href: links.href(entry, kind),
         kind,

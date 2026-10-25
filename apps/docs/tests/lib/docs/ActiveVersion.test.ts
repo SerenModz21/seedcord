@@ -1,4 +1,4 @@
-import { DocKind } from '@seedcord/docs-engine/client';
+import { DocKind } from '@seedcord/docs-search';
 import { describe, expect, it } from 'vitest';
 
 import { ActiveVersion } from '#lib/docs/ActiveVersion';
@@ -48,6 +48,24 @@ describe('ActiveVersion', () => {
         const active = await ActiveVersion.open(fixtureEngine('core', '@seedcord/core', CORE), 'core', '0.9.2');
 
         expect(active?.pages.map(({ label }) => label)).toEqual(['Bus', 'Hidden']);
+    });
+
+    it('labels a runtime build class with its condition', async () => {
+        const http: FixtureVersion[] = [
+            {
+                version: '0.10.2',
+                nodes: (pkg) => [
+                    docNode(pkg, 'Seedcord', { kind: DocKind.Class }),
+                    docNode(pkg, 'Seedcord', { kind: DocKind.Class, condition: 'workerd' })
+                ]
+            }
+        ];
+        const active = await ActiveVersion.open(fixtureEngine('http', '@seedcord/http', http), 'http', '0.10.2');
+
+        expect(active?.categories.flatMap(({ items }) => items.map(({ label }) => label))).toEqual([
+            'Seedcord',
+            'Seedcord (workerd)'
+        ]);
     });
 
     it('opens nothing for a version the index does not list', async () => {

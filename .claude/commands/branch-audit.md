@@ -13,8 +13,13 @@ Give the agent exactly the prompt below, word for word. Add nothing to it: no fi
 When it finishes:
 
 1. Reproduce every finding it marks CONFIRMED against the source or the built CLI before calling it real, and check its SUSPECTED ones the same way where the answer changes what gets fixed.
-2. Present the findings as a table with a verdict for each (fix, reject, or the user's call) and the evidence behind the verdict.
-3. Stop and wait for the user to pick what to fix.
+2. Present the findings as a table with a verdict for each (fix, reject, or the user's call) and the evidence behind the verdict. A finding the user already ruled on earlier in this session goes in a separate table at the bottom, labeled with that ruling and its reason, for example "ruled earlier: reject, too deep". The user can still flip it.
+3. Collect the decisions through AskUserQuestion, in rounds of at most four questions:
+    - First, questions per "user's call" finding. Give each option a one or two sentence description, and put the recommended pick first, marked "(Recommended)".
+    - Then multi-select questions asking "Which rejections should be fixed instead?" and "Which earlier rulings do you want to reopen?". A question holds two to four options, so split a longer list across several questions. A single finding gets its own two-option question instead, keep or change. Picking an option changes its verdict, so an empty answer keeps every verdict.
+    - Each reopened ruling gets its own question with the verdicts it can switch to, so a past fix can become a reject too.
+    - When the user doesn't understand a finding, explain it in plain words and ask about it again on its own.
+4. Stop and wait for the user to say go before fixing anything.
 
 ---
 
@@ -27,7 +32,7 @@ Everything the current branch changes against its base: `git diff $(git merge-ba
 ## Ground truth, read these first, top to bottom
 
 - `~/.claude/CLAUDE.md` (global rules) and the repo's `AGENTS.md` (CLAUDE.md symlinks to it), plus `packages/AGENTS.md`.
-- The skills under `.github/skills/`: `code-quality/` (every file in it), `code-commenting-guidelines/SKILL.md`, `writing-voice/SKILL.md`, `guide-voice/SKILL.md` (and its PROSE-REVIEW.md), `tdd/` (every file in it), `changeset-guidelines/SKILL.md`.
+- The skills under `.agents/skills/`: `code-quality/` (every file in it), `code-commenting-guidelines/SKILL.md`, `writing-voice/SKILL.md`, `guide-voice/SKILL.md` (and its PROSE-REVIEW.md), `tdd/` (every file in it), `changeset-guidelines/SKILL.md`.
 - For code structure questions (who calls what, whether an export has consumers), use the codebase-memory MCP tools (load them with ToolSearch, call `list_projects`, and use the project whose root path is this checkout) and then read the source to confirm. For text in non-code files, plain reads are fine.
 - The package's own README and its `package.json` exports map define the public surface.
 
@@ -37,6 +42,10 @@ Treat those files as the rules. Do not substitute your own taste where they alre
 
 1. Adversarial: bugs, wrong behavior, edge cases that break, claims in code, comments, docs, or changesets that are false. Try to break it. Where you can, prove a behavior claim by running the package's tests or a small script (`pnpm -C <pkg> exec vitest run <file>`, node one-liners), rather than reasoning about it.
 2. Code quality per the code-quality skill.
+    - For example, if any justified casts are easy ways out of properly narrowing types
+    - Any types that have been hacked on instead of derived properly
+    - Code that's adding a new feature or fix as a patch rather than fix the underlying root cause, or sometimes a design flaw
+    - More things that the skill mentions
 3. Comments per code-commenting-guidelines, and all prose (comments, README, changesets, CLI output text, error messages) per writing-voice and guide-voice. Apply them at their strictest.
     - Any comments that could be removed by using better naming, refactoring, or code structure.
 4. Tests per the tdd skill. Specifically hunt for:
@@ -45,10 +54,13 @@ Treat those files as the rules. Do not substitute your own taste where they alre
     - tests that exist only to add to the count
     - tests that are purely tautological
     - tests that assert on constants or static hardcoded strings rather than behavior
+    - tests that are doing the same and heavy work multiple times when they could be consolidated or optimized
+        - check the test optimization guidelines
 5. Overengineering.
 6. YAGNI.
 7. Exports: every export added or changed, whether anything outside its file uses it, whether it belongs on the public surface, and whether the package.json exports map and README agree.
 8. Code that's staggered across functions that could be consolidated for clarity and maintainability by refactoring into an OOP-based design.
+9. Refactors: if the changes read as a set of patches, list each patch with its file:line and propose the refactor that would replace them, with its scope.
 
 ## Output
 

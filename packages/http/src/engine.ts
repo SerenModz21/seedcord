@@ -1,9 +1,8 @@
-import { asError, PublishDefault } from '@seedcord/core/internal';
-import { SeedcordErrorCode, paint } from '@seedcord/errors';
-import { SeedcordError } from '@seedcord/errors/internal';
+import { PublishDefault } from '@seedcord/core/internal';
+import { paint } from '@seedcord/errors';
 import { Logger } from '@seedcord/logger';
+import { asError } from '@seedcord/utils/internal';
 import { InteractionResponseType, InteractionType } from 'discord-api-types/v10';
-import { Converters, Envapter } from 'envapt';
 
 import { dispatchInteraction } from './dispatch/dispatchInteraction';
 import { resolve } from './dispatch/resolve';
@@ -33,33 +32,31 @@ const decoder = new TextDecoder();
 type Outcome = 'not-post' | 'unsigned' | 'stale' | 'bad-signature' | 'bad-body' | 'ping' | 'replay' | 'dispatched';
 type Answer = readonly [Response, Outcome];
 
+// discord only POSTs to the interactions endpoint
+export function rejectNonPost(request: Request): Response | undefined {
+    if (request.method === 'POST') return undefined;
+    return new Response(null, { status: METHOD_NOT_ALLOWED, headers: { allow: 'POST' } });
+}
+
 function hasInteractionType(payload: unknown): payload is { type: number } {
     return typeof payload === 'object' && payload !== null && 'type' in payload && typeof payload.type === 'number';
 }
 
-/** Structural match for the Workers `ExecutionContext`. Pass it from the edge entry so post-202 work runs under `waitUntil`. */
+/** Matches the shape of the Workers `ExecutionContext`. Work that continues after the 202 response runs under its `waitUntil`. */
 export interface EngineContext {
     waitUntil(promise: Promise<unknown>): void;
 }
 
-export interface EngineParts {
-    readonly handle: (request: Request, ctx?: EngineContext) => Promise<Response>;
-    // node paths only, drained at shutdown
-    readonly inFlight: ReadonlySet<Promise<void>>;
-}
+export type Engine = (request: Request, ctx?: EngineContext) => Promise<Response>;
 
 export function buildEngine(
     core: Core,
     maps: RouteMaps,
-    middlewares: MiddlewareRegistry<InteractionMiddlewareConstructor>
-): EngineParts {
-    if (!Envapter.has('DISCORD_PUBLIC_KEY'))
-        throw new SeedcordError(SeedcordErrorCode.ConfigMissingEnv, ['DISCORD_PUBLIC_KEY']);
-    const publicKey = Envapter.getRequired('DISCORD_PUBLIC_KEY', Converters.String);
-
+    middlewares: MiddlewareRegistry<InteractionMiddlewareConstructor>,
+    publicKey: string
+): Engine {
     const verifier = new Ed25519Verifier(publicKey);
     const replays = new ReplayGuard();
-    const inFlight = new Set<Promise<void>>();
     // eager because env binds before this factory runs
     const logger = new Logger('Engine', { channel: 'bot' });
 
@@ -73,12 +70,7 @@ export function buildEngine(
 
         // without this catch the rejection reaches the process unhandled
         const work = start().catch(rootFault);
-        if (ctx) {
-            ctx.waitUntil(work);
-        } else {
-            inFlight.add(work);
-            void work.finally(() => inFlight.delete(work));
-        }
+        ctx?.waitUntil(work);
     }
 
     function rootFault(caught: unknown): void {
@@ -94,9 +86,8 @@ export function buildEngine(
     };
 
     const respond = async (request: Request, ctx?: EngineContext): Promise<Answer> => {
-        if (request.method !== 'POST') {
-            return [new Response(null, { status: METHOD_NOT_ALLOWED, headers: { allow: 'POST' } }), 'not-post'];
-        }
+        const notPost = rejectNonPost(request);
+        if (notPost) return [notPost, 'not-post'];
 
         const signature = request.headers.get(SIGNATURE_HEADER);
         const timestamp = request.headers.get(TIMESTAMP_HEADER);
@@ -138,5 +129,5 @@ export function buildEngine(
         return [new Response(null, { status: ACCEPTED }), 'dispatched'];
     };
 
-    return { handle, inFlight };
+    return handle;
 }

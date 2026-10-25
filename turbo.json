@@ -1,11 +1,13 @@
 {
     "$schema": "https://turbo.build/schema.json",
     "ui": "tui",
+    // 2 ran a core change's tests faster than 4
+    "concurrency": "2",
     "tasks": {
         "build": {
             "dependsOn": ["^build"],
             "inputs": ["$TURBO_DEFAULT$", ".env*"],
-            "outputs": ["dist/**", ".next/**", "!.next/cache/**", "out/**"],
+            "outputs": ["dist/**", ".next/**", "!.next/cache/**"],
             "env": ["SEEDCORD_DOCS_INDEX_URL"]
         },
         "//#docs:extract": {
@@ -35,10 +37,14 @@
                 "packages/*/package.json",
                 "plugins/*/dist/**/*.d.mts",
                 "plugins/*/package.json",
-                "cli/*/dist/**/*.d.mts",
-                "cli/*/package.json",
-                "tooling/*/dist/**/*.d.mts",
-                "tooling/*/package.json"
+                "cli/seedcord/dist/**/*.d.mts",
+                "cli/seedcord/package.json",
+                "tooling/eslint-config/dist/**/*.d.mts",
+                "tooling/eslint-config/package.json",
+                "tooling/eslint-plugin/dist/**/*.d.mts",
+                "tooling/eslint-plugin/package.json",
+                "tooling/eslint-plugin-discordjs/dist/**/*.d.mts",
+                "tooling/eslint-plugin-discordjs/package.json"
             ],
             "outputs": ["generated/*.json"]
         },
@@ -83,7 +89,10 @@
             "dependsOn": ["^build"]
         },
         "test": {
-            "dependsOn": ["^build"]
+            "dependsOn": ["^build"],
+            // turbo doesn't hash the os.
+            // ci would replay linux test results on windows and mac otherwise
+            "env": ["RUNNER_OS"]
         },
         "@seedcord/core#lint": {
             "dependsOn": ["^build", "@seedcord/core#build"]

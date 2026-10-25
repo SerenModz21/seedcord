@@ -1,0 +1,101 @@
+import { paint } from '@seedcord/errors';
+import { importFiles } from '@seedcord/utils';
+import { Envapter } from 'envapt';
+
+import { HmrModuleHandler } from '#hmr/HmrModuleHandler';
+import { SubscribeMetadataKey } from '#src/metadataKeys';
+import { busLoggerOf } from '#subscribers/Bus';
+import { registrationFor, Subscriber } from '#subscribers/index';
+import {
+    RegisterDefaults,
+    RegisteredCount,
+    RegisterSubscriber,
+    UnregisterSubscriber,
+    VerifyWebhooks
+} from '#subscribers/slots';
+
+import type { Initializeable } from '#src/plugin/Plugin';
+import type { SubscribeMetadataEntry } from '#subscribers/decorators/Subscribe';
+import type { StoredSubscriberCtor, Bus } from '#subscribers/index';
+import type { SubscriptionKey } from '#subscribers/types/Subscriptions';
+import type { HmrAware, HmrUpdateEvent } from '@seedcord/types';
+
+type SubscriberArtifact = SubscriptionKey[];
+
+export class SubscriberLoader implements Initializeable, HmrAware {
+    private isInitialized = false;
+    private readonly hmrHandler?: HmrModuleHandler<StoredSubscriberCtor, void, SubscriberArtifact>;
+
+    constructor(
+        private readonly bus: Bus,
+        private readonly directory: string | null
+    ) {
+        if (!this.directory) return;
+        if (!Envapter.isDevelopment && !Envapter.isTest) return;
+
+        this.hmrHandler = new HmrModuleHandler({
+            handlersDir: this.directory,
+            isHandler: this.isSubscriber.bind(this),
+            registerHandler: this.registerSubscriber.bind(this),
+            unregisterHandler: this.unregisterSubscriber.bind(this),
+            getArtifacts: this.getArtifacts.bind(this),
+            logger: busLoggerOf(this.bus)
+        });
+    }
+
+    /** @internal */
+    public async init(): Promise<void> {
+        if (this.isInitialized) return;
+        this.isInitialized = true;
+
+        this.bus[RegisterDefaults]();
+
+        const { directory } = this;
+        if (directory) {
+            busLoggerOf(this.bus).debug(paint.mute(directory));
+            await this.load(directory);
+            busLoggerOf(this.bus).utils.list(
+                [`${paint.iris.bold(this.bus[RegisteredCount])} subscribers`],
+                paint.mint.bold('Loaded'),
+                'debug'
+            );
+        }
+
+        if (!Envapter.isTest) await this.bus[VerifyWebhooks]();
+    }
+
+    /** @internal */
+    public async onHmr(event: HmrUpdateEvent): Promise<void> {
+        if (this.hmrHandler) await this.hmrHandler.handle(event);
+    }
+
+    private async load(dir: string): Promise<void> {
+        for await (const { fullPath, relativePath, imported } of importFiles(dir)) {
+            for (const value of Object.values(imported)) {
+                if (!this.isSubscriber(value)) continue;
+
+                this.registerSubscriber(value);
+                this.hmrHandler?.trackHandler(fullPath, value);
+                busLoggerOf(this.bus).utils.registration(value.name, relativePath, undefined, 'trace');
+            }
+        }
+    }
+
+    private registerSubscriber(ctor: StoredSubscriberCtor): void {
+        this.bus[RegisterSubscriber](registrationFor(ctor));
+    }
+
+    private unregisterSubscriber(ctor: StoredSubscriberCtor, artifacts?: SubscriberArtifact): void {
+        this.bus[UnregisterSubscriber](ctor, artifacts);
+    }
+
+    private getArtifacts(ctor: StoredSubscriberCtor): SubscriberArtifact {
+        const meta = Reflect.getMetadata(SubscribeMetadataKey, ctor) as SubscribeMetadataEntry;
+        return [meta.subscriber];
+    }
+
+    private isSubscriber(value: unknown): value is StoredSubscriberCtor {
+        if (typeof value !== 'function') return false;
+        return value.prototype instanceof Subscriber && Reflect.hasMetadata(SubscribeMetadataKey, value);
+    }
+}

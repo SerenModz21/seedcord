@@ -1,5 +1,11 @@
 # @seedcord/tsconfig
 
+## 2.0.7-next.0
+
+### 🩹 Patch
+
+- Updated the README. ([`0a2520e`](https://github.com/seedcord/seedcord/commit/0a2520e3ac58ce714dae728c5b9fc6f60d40c7c2))
+
 ## 2.0.6
 
 ### 🩹 Patch

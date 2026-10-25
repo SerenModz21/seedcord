@@ -1,7 +1,7 @@
 {
     "name": "create-seedcord",
     "type": "module",
-    "version": "0.4.2",
+    "version": "0.5.0-next.0",
     "description": "Scaffold a new seedcord bot",
     "keywords": [
         "discord",
@@ -12,7 +12,7 @@
         "starter"
     ],
     "engines": {
-        "node": ">=24.11",
+        "node": "^24.22.1 || >=26.12.1",
         "bun": ">=1.4.2"
     },
     "bin": {
@@ -53,7 +53,7 @@
         "coverage": "vitest run --coverage"
     },
     "devDependencies": {
-        "@clack/prompts": "catalog:deps",
+        "@seedcord/cli-prompts": "workspace:^",
         "@seedcord/errors": "workspace:^",
         "@seedcord/eslint-config": "workspace:^",
         "@seedcord/tsconfig": "workspace:^",
@@ -61,7 +61,7 @@
         "@seedcord/types": "workspace:^",
         "@seedcord/vitest-config": "workspace:^",
         "discord.js": "catalog:peer",
-        "handlebars": "^4.7.9",
+        "handlebars": "^4.7.10",
         "package-manager-detector": "^1.8.0",
         "tsx": "catalog:deps",
         "typescript": "catalog:peer"

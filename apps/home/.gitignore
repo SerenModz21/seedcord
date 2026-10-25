@@ -8,13 +8,16 @@
 
 # next.js
 /.next/
-/out/
+
+# fumadocs-mdx codegen
+/.source/
 
 # cloudflare
 /.wrangler/
 
 # production
 /build
+/dist
 
 # misc
 .DS_Store

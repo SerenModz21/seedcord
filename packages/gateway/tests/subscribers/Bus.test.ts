@@ -1,11 +1,10 @@
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { HmrManager, SubscriberLoader } from '@seedcord/core/internal';
+import { describe, expect, afterEach, vi } from 'vitest';
 
 import { Seedcord } from '#src/Seedcord';
 import { seedcordPath } from '#tests/utils/source-path';
 import { testConfig } from '#tests/utils/test-config';
-import { TestEnvironment } from '#tests/utils/test-env';
-
-import '#tests/utils/mock-env';
+import { it } from '#tests/utils/test-env';
 
 import type { HmrUpdateEvent } from '@seedcord/types';
 
@@ -22,14 +21,9 @@ interface PrivateHmrManager {
     handleUpdate(event: HmrUpdateEvent): Promise<void>;
 }
 
-interface PrivateSeedcordInternals {
-    hmrManager: PrivateHmrManager;
-    subscribers: { init(): Promise<void>; onHmr(event: HmrUpdateEvent): Promise<void> };
-}
-
-// justified: the loader is private on the host, and it runs discovery and hot reload
-function internalsOf(instance: Seedcord): PrivateSeedcordInternals {
-    return instance as unknown as PrivateSeedcordInternals;
+// Seedcord builds the same loader from its config
+function loaderOf(instance: Seedcord): SubscriberLoader {
+    return new SubscriberLoader(instance.bus, instance.config.subscribers.path);
 }
 
 // justified: PrivateBus exposes the private subscribersMap for assertion
@@ -38,22 +32,11 @@ function registrationsOf(instance: Seedcord, key: string): Registration[] | unde
 }
 
 describe('Bus Integration', () => {
-    let testEnv: TestEnvironment;
-    let seedcord: Seedcord;
-
-    beforeEach(async () => {
-        // @ts-expect-error reset the Seedcord singleton between tests
-        Seedcord.reset();
-        testEnv = new TestEnvironment('subscribers-test-');
-        await testEnv.setup();
+    afterEach(() => {
+        vi.restoreAllMocks();
     });
 
-    afterEach(async () => {
-        await testEnv.teardown();
-        vi.clearAllMocks();
-    });
-
-    it('should load subscribers from directory', async () => {
+    it('should load subscribers from directory', async ({ testEnv }) => {
         const subscribersDir = 'subscribers';
         await testEnv.createFile(
             `${subscribersDir}/LogSubscriber.ts`,
@@ -71,14 +54,15 @@ describe('Bus Integration', () => {
 
         const config = testConfig({ subscribers: testEnv.resolvePath(subscribersDir) });
 
-        seedcord = new Seedcord(config);
-        await internalsOf(seedcord).subscribers.init();
+        await using seedcord = new Seedcord(config);
+        // subscribers load in Configuration. Login rejects later without a real token
+        await seedcord.start().catch(() => undefined);
 
         // unknownException has a default handler (UnknownException), plus our custom one = 2
         expect(registrationsOf(seedcord, 'unknownException')).toHaveLength(2);
     });
 
-    it('should handle HMR updates for subscribers', async () => {
+    it('should handle HMR updates for subscribers', async ({ testEnv }) => {
         const subscribersDir = 'subscribers';
         const filePath = await testEnv.createFile(
             `${subscribersDir}/LogSubscriber.ts`,
@@ -96,8 +80,9 @@ describe('Bus Integration', () => {
 
         const config = testConfig({ subscribers: testEnv.resolvePath(subscribersDir) });
 
-        seedcord = new Seedcord(config);
-        await internalsOf(seedcord).subscribers.init();
+        await using seedcord = new Seedcord(config);
+        const loader = loaderOf(seedcord);
+        await loader.init();
 
         const handlersBefore = registrationsOf(seedcord, 'unknownException');
 
@@ -118,7 +103,7 @@ describe('Bus Integration', () => {
             `
         );
 
-        await internalsOf(seedcord).subscribers.onHmr({
+        await loader.onHmr({
             file: filePath,
             type: 'update'
         });
@@ -131,7 +116,7 @@ describe('Bus Integration', () => {
         expect(customHandlerAfter?.name).toBe('LogSubscriber');
     });
 
-    it('registers the Bus with the HMR manager, so an update dispatch reaches it', async () => {
+    it('registers the Bus with the HMR manager, so an update dispatch reaches it', async ({ testEnv }) => {
         const subscribersDir = 'subscribers';
         const filePath = await testEnv.createFile(
             `${subscribersDir}/LogSubscriber.ts`,
@@ -149,11 +134,14 @@ describe('Bus Integration', () => {
 
         const config = testConfig({ subscribers: testEnv.resolvePath(subscribersDir) });
 
-        seedcord = new Seedcord(config);
+        const register = vi.spyOn(HmrManager.prototype, 'register');
+        await using seedcord = new Seedcord(config);
         // hmr registration runs in Configuration. Login rejects later without a real token
         await seedcord.start().catch(() => undefined);
 
-        const { hmrManager, subscribers } = internalsOf(seedcord);
+        // justified: only the vite dev channel calls the private handleUpdate
+        const hmrManager = register.mock.contexts[0] as PrivateHmrManager;
+        const subscribers = register.mock.calls.map(([module]) => module).find((m) => m instanceof SubscriberLoader)!;
         const onHmr = vi.spyOn(subscribers, 'onHmr');
         const event: HmrUpdateEvent = { file: filePath, type: 'update' };
         await hmrManager.handleUpdate(event);

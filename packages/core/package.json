@@ -1,9 +1,9 @@
 {
     "name": "@seedcord/core",
     "type": "module",
-    "version": "0.10.0",
+    "version": "0.11.0-next.0",
     "engines": {
-        "node": ">=24.11",
+        "node": "^24.22.1 || >=26.12.1",
         "bun": ">=1.4.2"
     },
     "description": "Foundational code shared by both transports",
@@ -42,6 +42,12 @@
             "import": {
                 "types": "./dist/internal.index.d.mts",
                 "default": "./dist/internal.index.mjs"
+            }
+        },
+        "./internal/env": {
+            "import": {
+                "types": "./dist/env-internal.index.d.mts",
+                "default": "./dist/env-internal.index.mjs"
             }
         },
         "./node": {
@@ -95,7 +101,8 @@
         "@seedcord/types": "workspace:^",
         "@seedcord/utils": "workspace:^",
         "discord-api-types": "catalog:deps",
-        "reflect-metadata": "catalog:deps"
+        "reflect-metadata": "catalog:deps",
+        "verkit": "catalog:deps"
     },
     "devDependencies": {
         "@seedcord/eslint-config": "workspace:^",
@@ -105,7 +112,7 @@
         "@seedcord/vitest-config": "workspace:^",
         "envapt": "catalog:peer",
         "type-fest": "catalog:deps",
-        "vite": "catalog:deps"
+        "vite": "catalog:peer"
     },
     "publishConfig": {
         "access": "public",

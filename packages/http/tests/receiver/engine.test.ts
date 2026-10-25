@@ -3,49 +3,47 @@ import { Logger } from '@seedcord/logger';
 import { Envapter, PortableSource } from 'envapt';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import { createSeedcord } from '#src/createSeedcord';
-import { createSigner, type Signer } from '#tests/helpers/ed25519';
-import { emptyManifest, nullPathConfig, VALID_TOKEN } from '#tests/helpers/fixtures';
-
-const encoder = new TextEncoder();
-
-const nowSeconds = (): number => Math.floor(Date.now() / 1000);
+import { Seedcord } from '#src/edge/Seedcord';
+import { clearBakedIds, registerBakedIds } from '#tests/helpers/bakedIds';
+import { createSigner, nowSeconds, signedRequest, type Signer } from '#tests/helpers/ed25519';
+import { VALID_TOKEN } from '#tests/helpers/fixtures';
 
 function bindEnv(vars: Record<string, string>): void {
     Envapter.useSource(new PortableSource(vars));
 }
 
+function edgeSeedcord(): Seedcord {
+    // @ts-expect-error singleton reset between bots
+    Seedcord.reset();
+    return new Seedcord({
+        bot: { interactions: { path: null }, commands: { path: null } },
+        subscribers: { path: null }
+    });
+}
+
 async function readySeedcord(): Promise<{ signer: Signer; handle: (request: Request) => Promise<Response> }> {
     const signer = await createSigner();
-    bindEnv({ DISCORD_PUBLIC_KEY: signer.publicKeyHex, DISCORD_BOT_TOKEN: VALID_TOKEN });
-    return { signer, handle: createSeedcord(nullPathConfig, emptyManifest()) };
+    bindEnv({ DISCORD_BOT_TOKEN: VALID_TOKEN });
+    registerBakedIds({ publicKey: signer.publicKeyHex });
+    const seedcord = edgeSeedcord();
+    return { signer, handle: (request) => seedcord.fetch(request) };
 }
 
-interface SignedRequestInit {
-    path?: string;
-    timestamp?: string;
-}
-
-async function signedRequest(signer: Signer, payload: string, init: SignedRequestInit = {}): Promise<Request> {
-    const timestamp = init.timestamp ?? String(nowSeconds());
-    const body = encoder.encode(payload);
-    const signature = await signer.sign(timestamp, body);
-
-    return new Request(`https://bot.example${init.path ?? '/interactions'}`, {
-        method: 'POST',
-        headers: {
-            'x-signature-ed25519': signature,
-            'x-signature-timestamp': timestamp
-        },
-        body
-    });
+// the edge Seedcord reads the env and the baked ids on its first POST
+function firstRequestError(): Promise<unknown> {
+    return edgeSeedcord()
+        .fetch(new Request('https://bot.example/interactions', { method: 'POST' }))
+        .then(
+            () => expect.unreachable('the first request should throw'),
+            (caught: unknown) => caught
+        );
 }
 
 const ping = '{"type":1}';
 // a type resolve() does not recognize, the one payload class the engine acks without dispatching
 const unrecognized = '{"type":99}';
 
-describe('createSeedcord request logging', () => {
+describe('engine request logging', () => {
     afterEach(() => {
         vi.restoreAllMocks();
     });
@@ -60,7 +58,7 @@ describe('createSeedcord request logging', () => {
     });
 });
 
-describe('createSeedcord', () => {
+describe('the interactions engine', () => {
     it('answers a signed PING with an in-body PONG', async () => {
         const { signer, handle } = await readySeedcord();
 
@@ -174,36 +172,21 @@ describe('createSeedcord', () => {
         expect(response.headers.get('allow')).toBe('POST');
     });
 
-    it('throws ConfigMissingPublicKey when the env var is unset', () => {
+    it('throws CoreEdgeUnbuilt when the worker carries no ids from seedcord build', async () => {
         bindEnv({ DISCORD_BOT_TOKEN: VALID_TOKEN });
+        clearBakedIds();
 
-        try {
-            createSeedcord(nullPathConfig, emptyManifest());
-            expect.unreachable('createSeedcord should throw');
-        } catch (error) {
-            expect(isSeedcordError(error, 'SeedcordError', SeedcordErrorCode.ConfigMissingEnv)).toBe(true);
-        }
+        const error = await firstRequestError();
+
+        expect(isSeedcordError(error, 'SeedcordError', SeedcordErrorCode.CoreEdgeUnbuilt)).toBe(true);
     });
 
-    it('throws ConfigIncorrectPublicKey when the env var is malformed', () => {
-        bindEnv({ DISCORD_PUBLIC_KEY: 'zz'.repeat(32), DISCORD_BOT_TOKEN: VALID_TOKEN });
+    it('throws ConfigMissingEnv when the bot token env var is unset', async () => {
+        bindEnv({});
+        registerBakedIds({ publicKey: 'ab'.repeat(32) });
 
-        try {
-            createSeedcord(nullPathConfig, emptyManifest());
-            expect.unreachable('createSeedcord should throw');
-        } catch (error) {
-            expect(isSeedcordError(error, 'SeedcordTypeError', SeedcordErrorCode.ConfigInvalidEnv)).toBe(true);
-        }
-    });
+        const error = await firstRequestError();
 
-    it('throws ConfigMissingDiscordToken when the bot token env var is unset', () => {
-        bindEnv({ DISCORD_PUBLIC_KEY: 'ab'.repeat(32) });
-
-        try {
-            createSeedcord(nullPathConfig, emptyManifest());
-            expect.unreachable('createSeedcord should throw');
-        } catch (error) {
-            expect(isSeedcordError(error, 'SeedcordError', SeedcordErrorCode.ConfigMissingEnv)).toBe(true);
-        }
+        expect(isSeedcordError(error, 'SeedcordError', SeedcordErrorCode.ConfigMissingEnv)).toBe(true);
     });
 });

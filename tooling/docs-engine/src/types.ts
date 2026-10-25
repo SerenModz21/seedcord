@@ -1,6 +1,7 @@
 import type { GlobalId } from '#src/ids';
 import type { PackageDirectory } from '#src/PackageDirectory';
 import type { ManifestRepository, PackageSourceIndex, ReexportEntry as DocReexport } from '@seedcord/docs-generator';
+import type { DocSearchEntry } from '@seedcord/docs-search';
 
 export type SigPart =
     | { kind: 'text'; text: string }
@@ -48,7 +49,10 @@ export interface RenderedDeclarationHeader {
 /** One import path a package documents, paired with the api model extracted for it. */
 export interface DocManifestEntry {
     subpath: string;
+    /** The `exports` key that selects this build, like `workerd`. Absent for the default build. */
+    condition?: string;
     output: string | null;
+    ownVersions?: string[];
 }
 
 export interface DocManifestPackage {
@@ -261,20 +265,8 @@ export interface DocNode {
     // Set on top-level members only: the `exports` map subpaths that expose this symbol, `.` for the
     // root entry.
     entries?: string[];
-}
-
-export interface DocSearchEntry {
-    slug: string;
-    name: string;
-    qualifiedName: string;
-    packageName: string;
-    packageVersion?: string;
-    kind: number;
-    summary: string | null;
-    aliases?: string[];
-    file?: string;
-    value?: string;
-    tokens: string[];
+    // Set on a runtime build's top-level node that reuses a default-build name, like the edge `Seedcord`.
+    condition?: string;
 }
 
 export interface DocIndexes {

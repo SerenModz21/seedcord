@@ -1,10 +1,11 @@
+import { paint } from '@seedcord/errors';
+
 import { ui } from '#ui/palette';
 
 import type { TextProps } from 'ink';
 
 export type DevPhase = 'starting' | 'running' | 'restart-required' | 'disconnected' | 'error' | 'quitting';
 
-// disconnect only applies while a session is running. the other phases have nothing to stop.
 export function isSessionLive(phase: DevPhase): boolean {
     return phase === 'running' || phase === 'restart-required';
 }
@@ -29,6 +30,6 @@ export const PHASE_META = {
     running: { label: 'running', icon: '●', color: ui.good, kind: 'arc' },
     'restart-required': { label: 'restart required', icon: '◆', color: ui.warn, kind: 'static' },
     disconnected: { label: 'offline', icon: '○', color: ui.muted, kind: 'static' },
-    error: { label: 'error', icon: '✘', color: ui.bad, kind: 'static' },
+    error: { label: 'error', icon: paint.cross, color: ui.bad, kind: 'static' },
     quitting: { label: 'quitting', icon: '◐', color: ui.muted, kind: 'spinner' }
 } as const satisfies Record<DevPhase, PhaseMeta>;

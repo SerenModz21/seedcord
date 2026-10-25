@@ -3,7 +3,7 @@
   <p>Show your own card when someone shares your link on Discord.</p>
   <a href="https://github.com/seedcord/seedcord/blob/next/packages/discord-component-embed/CHANGELOG.md">Changelog</a> ·
   <a href="https://seedcord.org/docs/packages/discord-component-embed/latest">Reference</a> ·
-  <a href="https://discord.gg/DzFxY58WXf">Discord</a>
+  <a href="https://seedcord.org/chat/">Discord</a>
 </div>
 
 <br />
@@ -509,7 +509,7 @@ The [reference](https://seedcord.org/docs/packages/discord-component-embed/lates
 
 ## Errors
 
-Discord doesn't report an invalid payload anywhere. It shows the Open Graph card, or no preview at all for most payloads that break Discord's general component rules, like a bad `id`. So `toComponentEmbed`, `toComponentEmbedJson`, `toComponentEmbedScript`, `<ComponentEmbed>`, and `componentEmbedResponse` throw a [`ComponentEmbedError`](https://docs.seedcord.org/packages/discord-component-embed/latest/classes/component-embed-error) when:
+Discord doesn't report an invalid payload anywhere. It shows the Open Graph card, or no preview at all for most payloads that break Discord's general component rules, like a bad `id`. So `toComponentEmbed`, `toComponentEmbedJson`, `toComponentEmbedScript`, `<ComponentEmbed>`, and `componentEmbedResponse` throw a [`ComponentEmbedError`](https://seedcord.org/docs/packages/discord-component-embed/latest/classes/component-embed-error) when:
 
 - the root is anything other than one `Container`
 - a component is somewhere it isn't allowed, or text is outside a `TextDisplay`

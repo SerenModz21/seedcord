@@ -9,10 +9,11 @@ import {
     type Excerpt,
     type HeritageType
 } from '@microsoft/api-extractor-model';
+import { DocKind } from '@seedcord/docs-search';
 
 import { referenceFromCanonical } from '#model/canonical-ref';
 import { excerptToInlineType } from '#model/excerpt-renderer';
-import { DocKind, frozenKindLabel } from '#model/kinds';
+import { frozenKindLabel } from '#model/kinds';
 import { memberModifiers } from '#model/modifiers';
 import { buildComment, type LinkResolver } from '#model/tsdoc-comment';
 import { formatRenderedSignature } from '#transformers/signature-renderer';
@@ -21,11 +22,15 @@ import type {
     DocFlags,
     DocGroup,
     DocInheritance,
+    DocManifestPackage,
     DocNode,
     DocReference,
     DocSignature,
     DocSignatureParameter,
+    DocSource,
     InlineType,
+    PackageSourceIndex,
+    ReexportReference,
     RenderedDeclarationHeader,
     RenderedSignature
 } from '#src/types';
@@ -170,11 +175,40 @@ function heritageInline(types: readonly HeritageType[] | undefined): InlineType[
     return rendered.length > 0 ? rendered : undefined;
 }
 
+export function reexportReferences(manifest: DocManifestPackage): ReexportReference[] {
+    return (manifest.reexports ?? []).map((entry) => ({
+        name: entry.name,
+        qualifiedName: entry.name,
+        packageName: entry.owner
+    }));
+}
+
 export function inheritedFromRef(item: ApiItem, owningContainer: ApiItem | undefined): DocReference | null {
     if (!owningContainer) return null;
     const parent = item.parent;
     if (!parent || parent === owningContainer || !(parent instanceof ApiDeclaredItem)) return null;
     return referenceFromCanonical(parent.canonicalReference, parent.displayName);
+}
+
+// own row first. api extractor leaves an `@internal` override out and reports the member as inherited.
+export function sourcesIn(table: PackageSourceIndex, ownRow: string, baseRow: string | undefined): DocSource[] {
+    const entries = table[ownRow] ?? (baseRow === undefined ? undefined : table[baseRow]);
+    return (entries ?? []).map((entry) => ({
+        fileName: entry.file,
+        line: entry.line,
+        character: entry.column,
+        ...(entry.url && { url: entry.url })
+    }));
+}
+
+// a base class from another package has no row in this package's source table
+export function baseRowName(
+    memberName: string,
+    inheritedFrom: DocReference | null,
+    packageName: string
+): string | undefined {
+    if (inheritedFrom?.packageName !== packageName || !inheritedFrom.qualifiedName) return undefined;
+    return `${inheritedFrom.qualifiedName}.${memberName}`;
 }
 
 const MODIFIER_WORDS = new Set([

@@ -6,6 +6,7 @@ on:
     paths:
       - 'apps/docs/**'
       - 'tooling/docs-engine/**'
+      - 'tooling/docs-search/**'
       - 'tooling/docs-generator/**'
       - 'tooling/ui/**'
       - 'scripts/src/docs/**'
@@ -19,6 +20,17 @@ on:
       deploy:
         type: boolean
         default: true
+    secrets:
+      R2_ACCOUNT_ID:
+        required: true
+      R2_ACCESS_KEY_ID:
+        required: true
+      R2_SECRET_ACCESS_KEY:
+        required: true
+      CLOUDFLARE_API_TOKEN:
+        required: true
+      TURBO_TOKEN:
+        required: true
   workflow_dispatch:
     inputs:
       deploy:
@@ -46,14 +58,13 @@ jobs:
           fetch-depth: 0
 
       - name: Turbo cache
-        uses: ./.github/actions/turbo-cache
+        uses: $/.github/actions/turbo-cache
         with:
           turbo_token: ${{ secrets.TURBO_TOKEN }}
           turbo_team: ${{ vars.TURBO_TEAM }}
-          enable_fallback_cache: 'true'
 
       - name: Setup workspace
-        uses: ./.github/actions/setup
+        uses: $/.github/actions/setup
 
       - name: Build packages
         run: pnpm turbo build --filter="@seedcord/docs^..."
@@ -61,7 +72,6 @@ jobs:
       - name: Render every page
         run: pnpm -C apps/docs build
         env:
-          NEXT_PUBLIC_SITE_URL: https://seedcord.org/docs
           DOCS_BUILD_CPUS: 4
 
       - name: Check every docs link

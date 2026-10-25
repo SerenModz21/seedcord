@@ -2,7 +2,7 @@
     "name": "@seedcord/docs-engine",
     "version": "0.3.2",
     "engines": {
-        "node": ">=24.11",
+        "node": "^24.22.1 || >=26.12.1",
         "bun": ">=1.4.2"
     },
     "private": true,
@@ -54,18 +54,17 @@
         "LICENSE"
     ],
     "dependencies": {
-        "@leeoniya/ufuzzy": "^1.0.19",
         "@microsoft/api-extractor-model": "7.33.14",
         "@microsoft/tsdoc": "^0.17.1",
         "@seedcord/docs-generator": "workspace:^",
+        "@seedcord/docs-search": "workspace:^",
         "prettier": "catalog:deps",
-        "semver": "^7.8.5"
+        "verkit": "catalog:deps"
     },
     "devDependencies": {
         "@seedcord/eslint-config": "workspace:^",
         "@seedcord/tsconfig": "workspace:^",
         "@seedcord/tsdown-config": "workspace:^",
-        "@seedcord/vitest-config": "workspace:^",
-        "@types/semver": "^7.8.0"
+        "@seedcord/vitest-config": "workspace:^"
     }
 }

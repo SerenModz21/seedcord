@@ -1,30 +1,6 @@
-import type { ApiItem } from '@microsoft/api-extractor-model';
+import { DocKind } from '@seedcord/docs-search';
 
-export const DocKind = {
-    Project: 1,
-    Module: 2,
-    Namespace: 4,
-    Enum: 8,
-    EnumMember: 16,
-    Variable: 32,
-    Function: 64,
-    Class: 128,
-    Interface: 256,
-    Constructor: 512,
-    Property: 1024,
-    Method: 2048,
-    CallSignature: 4096,
-    IndexSignature: 8192,
-    ConstructorSignature: 16_384,
-    Parameter: 32_768,
-    TypeLiteral: 65_536,
-    TypeParameter: 131_072,
-    Accessor: 262_144,
-    GetSignature: 524_288,
-    SetSignature: 1_048_576,
-    TypeAlias: 2_097_152,
-    Reference: 4_194_304
-} as const;
+import type { ApiItem } from '@microsoft/api-extractor-model';
 
 const KIND_LABEL: Readonly<Record<number, string>> = {
     1: 'kind_project',

@@ -50,6 +50,9 @@
 - name: '📦 eslint-utils'
   color: 6278bc
   description: Internal shared utilities for the eslint plugins
+- name: '📦 cli-prompts'
+  color: 6278bc
+  description: Internal Ink prompts both CLIs bundle
 - name: '📦 tsconfig'
   color: 6e62bc
 - name: '📦 tsdown-config'
@@ -66,6 +69,9 @@
 - name: '📦 docs-engine'
   color: bc6283
   description: docs parser, renderer, explorer
+- name: '📦 docs-search'
+  color: bc6283
+  description: guide and reference search
 - name: '🏠 home'
   color: bc9662
 - name: '🎓 guide'

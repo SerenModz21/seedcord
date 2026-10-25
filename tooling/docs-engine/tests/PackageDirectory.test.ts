@@ -23,8 +23,12 @@ describe('PackageDirectory', () => {
                 'inline-constraint-child',
                 'inline-constraint-shadow',
                 'mock-class',
+                'mock-host-base',
+                'mock-runtime-host',
+                'mock-runtime-host-workerd',
                 'override-base',
-                'override-child'
+                'override-child',
+                'shared-host'
             ],
             interface: [
                 'extended-interface',

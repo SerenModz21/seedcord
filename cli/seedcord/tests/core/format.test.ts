@@ -1,21 +1,12 @@
 import { describe, expect, it } from 'vitest';
 
-import { includesIgnoreCase, plural } from '#core/format';
+import { formatBytes, plural } from '#core/format';
 
-describe('includesIgnoreCase', () => {
-    it('matches a substring regardless of case on either side', () => {
-        expect(includesIgnoreCase('My Guild', 'guild')).toBe(true);
-        expect(includesIgnoreCase('my guild', 'GUILD')).toBe(true);
-        expect(includesIgnoreCase('ABC123', 'abc')).toBe(true);
-    });
-
-    it('treats an empty or whitespace search as a match', () => {
-        expect(includesIgnoreCase('anything', '')).toBe(true);
-        expect(includesIgnoreCase('anything', '   ')).toBe(true);
-    });
-
-    it('is false when the substring is absent', () => {
-        expect(includesIgnoreCase('My Guild', 'zzz')).toBe(false);
+describe('formatBytes', () => {
+    it('picks the unit that keeps the number short', () => {
+        expect(formatBytes(512)).toBe('512 B');
+        expect(formatBytes(186_400)).toBe('186.4 kB');
+        expect(formatBytes(5_400_000)).toBe('5.4 MB');
     });
 });
 

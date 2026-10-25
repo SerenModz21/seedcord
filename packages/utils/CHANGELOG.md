@@ -1,5 +1,41 @@
 # @seedcord/utils
 
+## 0.9.0-next.1
+
+### 🩹 Patch
+
+- `seedcord dev` now reads `{"do":"restart"}`, `{"do":"disconnect"}`, and `{"do":"quit"}` lines from stdin when it runs without a terminal. ([#418](https://github.com/seedcord/seedcord/pull/418))
+
+## 0.9.0-next.0
+
+### 💥 Breaking
+
+- A relative folder path in the bot config, a plugin's `dir`, Kysely's migrations folder, and a folder passed to `importFiles` now resolve against `root` from `seedcord.config.ts`. With `root: './src'`, write `interactions: { path: './handlers' }` where you wrote `'./src/handlers'`. Outside `seedcord dev` and the built output, like in a test or a `tsx` run, a relative path now throws `CoreDirectoryRootUnknown` while an absolute path like `resolve(import.meta.dirname, './handlers')` works as before. ([#382](https://github.com/seedcord/seedcord/pull/382))
+- A mistake in your own code or command line now throws `SeedcordTypeError`, like two handlers on one route or a bad CLI flag. A zero `Cooldown` and other numbers out of range get `SeedcordRangeError`. An env var with a bad value is reported as a plain `SeedcordError`. ([#397](https://github.com/seedcord/seedcord/pull/397))
+- Error codes that cover the same failure are now merged, like the five match-arm codes into `MatchArmMissing`, and the codes of removed features, like `CliBootstrapWriteFailed`, are gone. Many of the rest have a new number, and some old numbers now belong to a different code. Match on the `SeedcordErrorCode` member and never on the raw number. ([#397](https://github.com/seedcord/seedcord/pull/397))
+- `importFiles`, and with it every handler, command, subscriber, service and migration folder, now loads `.tsx`, `.mts`, `.jsx` and `.mjs` files as well as `.ts` and `.js`. A stray `.mjs` file left in a handler folder starts loading too. `seedcord build` writes each one as a `.js` file and throws `CoreDuplicateName` for two files that would build to the same one, like `Roll.ts` and `Roll.tsx`. ([#410](https://github.com/seedcord/seedcord/pull/410))
+- Under `seedcord dev` and in a built bot, `importFiles` now throws `CorePathOutsideRoot` for a folder outside `root`. `importFiles` and `readFiles` throw `CoreDirectorySkipped` for a folder that `seedcord build` leaves out of the bot, like `./locales/.cache`, and `seedcord codegen`, `build` and `commands` run the same checks on the folders in your config. ([#410](https://github.com/seedcord/seedcord/pull/410))
+- `@seedcord/utils/node` is gone, and its `traverseDirectory` is now `importFiles` from `@seedcord/utils` (#410). It takes only the folder and returns files for a `for await` loop, sorted by path. A plugin that wrote `await traverseDirectory(dir, (fullPath, relativePath, imported) => {})` should now write `for await (const { fullPath, relativePath, imported } of importFiles(dir)) {}`. ([#358](https://github.com/seedcord/seedcord/pull/358))
+- `importFiles` now skips dotfiles, dot-folders, `node_modules`, `outDir` and the logs folder, the same way a built bot does. That covers handler, command and service folders, the command scan in `seedcord codegen` and `commands`, and hot reload in `seedcord dev`. Move a handler out of a folder like `.drafts/` to keep it loading. ([#359](https://github.com/seedcord/seedcord/pull/359))
+
+### ✨ Minor
+
+- Added `files` to `seedcord.config.ts`, like `files: ['./locales']` or `files: ['../assets']` beside `root`, for the folders a built bot reads through `readFiles`. `seedcord build` bundles non-code files from only those folders, binary files included, and `readFiles` throws `CoreDirectoryNotListed` for a folder `files` leaves out. A listed folder that is missing, is a file, or sits outside the folder that holds `seedcord.config.ts` throws `CliListedFolderUnusable`. ([#410](https://github.com/seedcord/seedcord/pull/410))
+- Added `readFiles` for bots and plugins that read json, markdown, images, or other non-code files from a folder that `files` in `seedcord.config.ts` lists, in dev and in a built bot alike. Each file comes back as a `Buffer`, and `bytes.toString()` turns a text file into a string. `@seedcord/gateway` and `@seedcord/http` now export `readFiles` and `importFiles` too (#410). ([#358](https://github.com/seedcord/seedcord/pull/358))
+
+### 🩹 Patch
+
+- Handler, middleware, command, subscriber, and service folders now load their files sorted by path. ([#358](https://github.com/seedcord/seedcord/pull/358))
+- Fixed `formatFilePath` printing backslashes on Windows. It now prints `./src/bot.ts` where it printed `.\src\bot.ts`. ([#401](https://github.com/seedcord/seedcord/pull/401))
+- Fixed `roundToDenomination` rounding 1949 up to `2K` and printing `1undefined` for a value after the last suffix. Now 1949 gives `1.9K`, for example. ([#384](https://github.com/seedcord/seedcord/pull/384), thanks [@dumbramkrishna](https://github.com/dumbramkrishna))
+- Fixed `filterCirculars` printing a child that two fields share as `[Circular]`. Both fields now show that child's contents, in `decycle` and `json` mode. ([#378](https://github.com/seedcord/seedcord/pull/378), thanks [@lunaradev1](https://github.com/lunaradev1))
+- Fixed `importFiles` and `readFiles` showing a file outside the working directory as a long relative path, like `../../../../bot/handlers/Roll.js`. They now show its full path, `/bot/handlers/Roll.js` for example. ([#407](https://github.com/seedcord/seedcord/pull/407))
+
+#### 📦 Seedcord packages
+
+- `@seedcord/errors` 0.13.0 → 0.14.0-next.0
+- `@seedcord/types` 0.14.4 → 0.15.0-next.0
+
 ## 0.8.17
 
 ### 🩹 Patch

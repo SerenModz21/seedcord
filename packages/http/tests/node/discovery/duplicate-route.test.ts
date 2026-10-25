@@ -3,7 +3,7 @@ import path from 'node:path';
 import { SeedcordErrorCode } from '@seedcord/errors';
 import { describe, expect, it } from 'vitest';
 
-import { InteractionDispatcher } from '#src/node/InteractionDispatcher';
+import { InteractionDispatcher } from '#src/dispatch/InteractionDispatcher';
 
 const DUPLICATES_DIR = path.resolve(import.meta.dirname, './duplicates');
 
@@ -16,7 +16,7 @@ describe('http filesystem discovery, duplicate routes', () => {
             (caught: unknown) => caught
         );
 
-        expect(error).toMatchObject({ code: SeedcordErrorCode.InteractionDuplicateRoute });
+        expect(error).toMatchObject({ code: SeedcordErrorCode.CoreDuplicateName });
         // the same shape the edge builder renders
         const message = Error.isError(error) ? error.message : String(error);
         expect(message).toContain('slash:ping');

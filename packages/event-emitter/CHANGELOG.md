@@ -1,5 +1,11 @@
 # @seedcord/event-emitter
 
+## 0.1.9-next.0
+
+### 🩹 Patch
+
+- Updated the README. ([`0a2520e`](https://github.com/seedcord/seedcord/commit/0a2520e3ac58ce714dae728c5b9fc6f60d40c7c2))
+
 ## 0.1.8
 
 ### 🩹 Patch

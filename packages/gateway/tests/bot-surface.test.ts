@@ -1,19 +1,13 @@
-import { describe, it, expect, afterEach } from 'vitest';
+import { describe, it, expect } from 'vitest';
 
 import { Seedcord } from '#src/Seedcord';
 
 import { testConfig } from './utils/test-config';
 
-import './utils/mock-env';
-
 describe('the Bot surface a bot author reaches', () => {
-    afterEach(() => {
-        // @ts-expect-error reset the Seedcord singleton between tests
-        Seedcord.reset();
-    });
-
-    it('drops the calls the host drives', () => {
-        const { bot } = new Seedcord(testConfig());
+    it('drops the calls the host drives', async () => {
+        await using seedcord = new Seedcord(testConfig());
+        const { bot } = seedcord;
 
         const hidden = [
             'init',

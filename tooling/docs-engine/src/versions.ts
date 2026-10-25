@@ -1,14 +1,20 @@
-import { gt, major, parse, prerelease, rcompare } from 'semver';
+import {
+    compareReversed,
+    getMajor,
+    isGreaterThan,
+    isPrerelease as versionIsPrerelease,
+    normalize,
+    tryParse
+} from 'verkit';
 
 import type { PackageIndexEntry } from '#remote/index-json';
 
 export function isPrerelease(version: string): boolean {
-    return prerelease(version) !== null;
+    return versionIsPrerelease(version) === true;
 }
 
-// rcompare throws on a version string that fails semver parsing.
 function sortVersionsDesc(versions: readonly string[]): string[] {
-    return [...versions].sort(rcompare);
+    return [...versions].sort(compareReversed);
 }
 
 /**
@@ -28,9 +34,9 @@ export function stableLineHeads(channel: {
 const ZERO_MINORS_SHOWN = 2;
 
 export function servedStableVersions(channel: Parameters<typeof stableLineHeads>[0]): string[] {
-    const majorHeads = Object.values(channel.latestByMajor).filter((version) => major(version) > 0);
+    const majorHeads = Object.values(channel.latestByMajor).filter((version) => getMajor(version) > 0);
     const zeroMinors = stableLineHeads(channel)
-        .filter((version) => major(version) === 0)
+        .filter((version) => getMajor(version) === 0)
         .slice(0, ZERO_MINORS_SHOWN);
     return sortVersionsDesc([...majorHeads, ...zeroMinors]);
 }
@@ -40,7 +46,7 @@ export function servedPrerelease({
     prerelease
 }: Pick<PackageIndexEntry, 'stable' | 'prerelease'>): string | null {
     if (!prerelease) return null;
-    return stable && !gt(prerelease.latest, stable.latest) ? null : prerelease.latest;
+    return stable && !isGreaterThan(prerelease.latest, stable.latest) ? null : prerelease.latest;
 }
 
 /**
@@ -53,8 +59,8 @@ export function replacementVersion(
     entry: Pick<PackageIndexEntry, 'stable' | 'prerelease'>,
     version: string
 ): string | null {
-    const requested = parse(version);
-    if (requested?.version !== version) return null;
+    const requested = tryParse(version);
+    if (!requested || normalize(requested) !== version) return null;
 
     const { stable } = entry;
     const next = servedPrerelease(entry);
@@ -67,6 +73,10 @@ export function replacementVersion(
         stable?.latest
     ].find((candidate) => candidate !== undefined && served.includes(candidate));
     const prereleaseHead =
-        requested.prerelease.length > 0 && next !== null && major(next) === requested.major ? next : undefined;
-    return [lineHead, prereleaseHead].find((candidate) => candidate !== undefined && gt(candidate, requested)) ?? null;
+        versionIsPrerelease(requested) && next !== null && getMajor(next) === requested.major ? next : undefined;
+    return (
+        [lineHead, prereleaseHead].find(
+            (candidate) => candidate !== undefined && isGreaterThan(candidate, requested)
+        ) ?? null
+    );
 }

@@ -1,13 +1,10 @@
-import { SeedcordErrorCode } from '@seedcord/errors';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, vi } from 'vitest';
 
 import { eventsOf } from '#bot/Bot';
 import { Seedcord } from '#src/Seedcord';
 import { seedcordPath } from '#tests/utils/source-path';
 import { testConfig } from '#tests/utils/test-config';
-import { TestEnvironment } from '#tests/utils/test-env';
-
-import '#tests/utils/mock-env';
+import { it } from '#tests/utils/test-env';
 
 interface PrivateEventDispatcher {
     init(): Promise<void>;
@@ -66,34 +63,12 @@ function deferred(): { promise: Promise<void>; resolve: () => void } {
     return { promise, resolve };
 }
 
-const AUDIT = `
-    import { RegisterEventMiddleware, EventMiddleware } from '${seedcordPath}';
-
-    @RegisterEventMiddleware()
-    export class Audit extends EventMiddleware {
-        public async execute() {
-            await Promise.resolve();
-        }
-    }
-`;
-
 describe('the event middleware registry', () => {
-    let testEnv: TestEnvironment;
-    let seedcord: Seedcord;
-
-    beforeEach(async () => {
-        // @ts-expect-error: Accessing private method for testing
-        Seedcord.reset();
-        testEnv = new TestEnvironment('event-mw-hmr-');
-        await testEnv.setup();
-    });
-
-    afterEach(async () => {
-        await testEnv.teardown();
+    afterEach(() => {
         vi.clearAllMocks();
     });
 
-    it('runs the rest of the chain when a reload drops a middleware mid-dispatch', async () => {
+    it('runs the rest of the chain when a reload drops a middleware mid-dispatch', async ({ testEnv }) => {
         const ran: string[] = [];
         const parked = deferred();
         const started = deferred();
@@ -105,7 +80,7 @@ describe('the event middleware registry', () => {
         const parksPath = await testEnv.createFile(`${MIDDLEWARES_DIR}/Parks.ts`, PARKS);
         await testEnv.createFile(`${MIDDLEWARES_DIR}/Follows.ts`, FOLLOWS);
 
-        seedcord = new Seedcord(
+        await using seedcord = new Seedcord(
             testConfig({
                 events: testEnv.resolvePath(EVENTS_DIR),
                 eventMiddlewares: testEnv.resolvePath(MIDDLEWARES_DIR)
@@ -125,27 +100,5 @@ describe('the event middleware registry', () => {
         await dispatching;
 
         expect(ran).toEqual(['Parks', 'Follows']);
-    });
-
-    it('throws when two event middleware classes share a name', async () => {
-        await testEnv.createFile(`${EVENTS_DIR}/Msg.ts`, HANDLER);
-        await testEnv.createFile(`${MIDDLEWARES_DIR}/First.ts`, AUDIT);
-        await testEnv.createFile(`${MIDDLEWARES_DIR}/Second.ts`, AUDIT);
-
-        seedcord = new Seedcord(
-            testConfig({
-                events: testEnv.resolvePath(EVENTS_DIR),
-                eventMiddlewares: testEnv.resolvePath(MIDDLEWARES_DIR)
-            })
-        );
-
-        const error: unknown = await dispatcherOf(seedcord)
-            .init()
-            .then(
-                () => null,
-                (caught: unknown) => caught
-            );
-
-        expect(error).toMatchObject({ code: SeedcordErrorCode.DuplicateMiddleware });
     });
 });

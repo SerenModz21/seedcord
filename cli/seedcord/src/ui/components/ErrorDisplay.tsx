@@ -1,6 +1,8 @@
 import { Box, Text } from 'ink';
 import React from 'react';
 
+import { plural } from '#core/format';
+import { messageOf } from '#core/output/renderError';
 import { ui } from '#ui/palette';
 
 import type { ReactElement } from 'react';
@@ -16,6 +18,8 @@ export function ErrorDisplay({ error }: ErrorDisplayProps): ReactElement {
     const frames = (error.stack?.split('\n') ?? []).slice(1);
     const preview = frames.slice(0, STACK_PREVIEW_LINES);
     const hidden = frames.length - preview.length;
+    const aggregate = [error, error.cause].find((candidate) => candidate instanceof AggregateError);
+    const problems: string[] = aggregate?.errors.map(messageOf) ?? [];
 
     return (
         <Box flexDirection="column" borderStyle="round" borderColor={ui.bad} paddingX={1}>
@@ -23,6 +27,7 @@ export function ErrorDisplay({ error }: ErrorDisplayProps): ReactElement {
                 Error: {error.name}
             </Text>
             <Text>{error.message}</Text>
+            {problems.length > 0 && <Text>{problems.map((problem) => `• ${problem}`).join('\n')}</Text>}
             {preview.length > 0 && (
                 <Box marginTop={1} flexDirection="column">
                     {preview.map((line) => (
@@ -30,7 +35,7 @@ export function ErrorDisplay({ error }: ErrorDisplayProps): ReactElement {
                             {line}
                         </Text>
                     ))}
-                    {hidden > 0 && <Text dimColor>{`… ${hidden} more line${hidden === 1 ? '' : 's'}`}</Text>}
+                    {hidden > 0 && <Text dimColor>{`… ${plural(hidden, 'more line', 'more lines')}`}</Text>}
                 </Box>
             )}
             <Box marginTop={1}>

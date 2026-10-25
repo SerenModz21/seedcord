@@ -1,5 +1,40 @@
 # create-seedcord
 
+## 0.5.0-next.0
+
+### 💥 Breaking
+
+- `create-seedcord` no longer asks for the public key, and `--public-key` and `--no-public-key` have been removed. An http bot now reads the key from Discord at startup. ([#381](https://github.com/seedcord/seedcord/pull/381))
+- A mistake in your own code or command line now throws `SeedcordTypeError`, like two handlers on one route or a bad CLI flag. A zero `Cooldown` and other numbers out of range get `SeedcordRangeError`. An env var with a bad value is reported as a plain `SeedcordError`. ([#397](https://github.com/seedcord/seedcord/pull/397))
+- Error codes that cover the same failure are now merged, like the five match-arm codes into `MatchArmMissing`, and the codes of removed features, like `CliBootstrapWriteFailed`, are gone. Many of the rest have a new number, and some old numbers now belong to a different code. Match on the `SeedcordErrorCode` member and never on the raw number. ([#397](https://github.com/seedcord/seedcord/pull/397))
+- `create-seedcord` no longer asks for a language, and `--language` now fails as an unknown option. Every new project is TypeScript, as it always was. ([#371](https://github.com/seedcord/seedcord/pull/371), thanks [@SerenModz21](https://github.com/SerenModz21))
+
+### ✨ Minor
+
+- `create-seedcord` now asks whether to install dependencies and set up git. Pass `--install` or `--no-install`, and `--git` or `--no-git`, to answer from the command line. Its questions and progress output now look like the `seedcord` CLI's, and each answer stays on screen as a short row. ([#400](https://github.com/seedcord/seedcord/pull/400))
+- A new node bot's `seedcord.config.ts` now sets its start file through `build.start`, and the project no longer gets a `tsconfig.build.json` (#359). ([#407](https://github.com/seedcord/seedcord/pull/407))
+- A new bot now has `commands`, `commands:deploy` and `check` scripts. `check` runs the type check, lint and format check in a row. ([#404](https://github.com/seedcord/seedcord/pull/404))
+- `create-seedcord` now asks where an http bot runs, and `--runtime edge` makes one for Cloudflare Workers with a `cloudflare.config.ts` and a `deploy` script. An edge bot made with Bun runs the `seedcord` CLI on Node, since Cloudflare's config loader throws on Bun. ([#404](https://github.com/seedcord/seedcord/pull/404))
+- A failed step in `create-seedcord` now prints the command that failed in bold and its output in color under its row, with stack frames left out. Pass `--verbose` to show them. ([#400](https://github.com/seedcord/seedcord/pull/400))
+- `create-seedcord` now asks for the servers to test your commands in, or reads them from `--testing-guilds`, and writes them to `TESTING_GUILD_IDS` in `.env`. The new `bot.ts` deploys commands to those servers and no longer sets `Envapter.baseDir` (#403). ([#404](https://github.com/seedcord/seedcord/pull/404))
+- A new bot now installs `vite` at the range `seedcord` takes as a peer, and its `tsconfig.json` types `import.meta.env` through `vite/client`. ([#404](https://github.com/seedcord/seedcord/pull/404))
+- A new project now gets a `.gitattributes` that marks `seedcord-gen.d.ts` as generated and checks text files out with LF line endings. ([#369](https://github.com/seedcord/seedcord/pull/369), thanks [@SerenModz21](https://github.com/SerenModz21))
+- A new project now has a `src/plugins` folder with a sample `Uptime` plugin, and `/ping` replies with the time the bot started. Its `tsconfig.json` maps `#src/*`, `#components/*` and `#plugins/*` to those folders under `src`. ([#376](https://github.com/seedcord/seedcord/pull/376), thanks [@TheDanikReal](https://github.com/TheDanikReal))
+
+### 🩹 Patch
+
+- The `AGENTS.md` in a new bot links the guide's Writing plugins pages, which moved. ([#413](https://github.com/seedcord/seedcord/pull/413))
+- Fixed the commands `create-seedcord` prints at the end of a run, where a hex color like `#fe565a` or a folder with a space broke the paste in bash. A folder path with `$`, a backtick, a double quote, `!`, or `%` is now refused, because no quoting keeps those whole in every shell. ([#400](https://github.com/seedcord/seedcord/pull/400))
+- `create-seedcord` now downloads 211 kB, down from 385 kB. ([#400](https://github.com/seedcord/seedcord/pull/400))
+- An interactive run of `create-seedcord` now ends with a line asking for a star on GitHub. ([#404](https://github.com/seedcord/seedcord/pull/404))
+- Fixed `pnpm lint` and `pnpm fmt` failing on Windows in a new bot, because cmd.exe kept the `'` quotes around `'src/**/*.ts'`. In a bot you already made, swap those quotes for `\"` in `package.json`. ([#401](https://github.com/seedcord/seedcord/pull/401))
+- Fixed every `pnpm install` failing with `ERR_PNPM_IGNORED_BUILDS` in a bot scaffolded with pnpm. The scaffold now writes a `pnpm-workspace.yaml` that skips the `unrs-resolver` install script. ([#385](https://github.com/seedcord/seedcord/pull/385), thanks [@TheDanikReal](https://github.com/TheDanikReal))
+- A new project now sets its folder paths relative to `root`, like `path: './handlers'`. ([#382](https://github.com/seedcord/seedcord/pull/382))
+- Fixed the scaffold's `.gitignore` leaving a `logs` folder inside `src` out of your commits. It now ignores only the `logs` folder at the project root. ([#359](https://github.com/seedcord/seedcord/pull/359))
+- New projects now open `.seedcord/` read-only in VS Code, the same as `seedcord-gen.d.ts`. ([#386](https://github.com/seedcord/seedcord/pull/386))
+- Fixed the token check accepting a bot token whose first part holds no application id. A bot now throws `ConfigInvalidEnv` for it at startup, and `create-seedcord` asks for the token again. ([#411](https://github.com/seedcord/seedcord/pull/411))
+- Fixed the token check rejecting tokens of apps made before October 2015, which have 17-digit application ids. ([#411](https://github.com/seedcord/seedcord/pull/411))
+
 ## 0.4.2
 
 ### 🩹 Patch

@@ -1,7 +1,8 @@
+import { paint } from '@seedcord/errors';
 import { Box, Text } from 'ink';
-import Spinner from 'ink-spinner';
 import React from 'react';
 
+import { Spinner } from '#ui/components/primitives/Spinner';
 import { ui } from '#ui/palette';
 
 import type { TunnelPhase } from '#commands/dev/tunnel/TunnelCoordinator';
@@ -14,7 +15,7 @@ const STEPS: readonly (readonly [TunnelPhase, string])[] = [
 ];
 
 function Marker({ done, active }: { done: boolean; active: boolean }): ReactElement {
-    if (done) return <Text color={ui.good}>✔︎</Text>;
+    if (done) return <Text color={ui.good}>{paint.check}</Text>;
     if (active) return <Spinner type="dots" />;
     return <Text color={ui.faint}>·</Text>;
 }

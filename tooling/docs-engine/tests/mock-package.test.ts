@@ -1,6 +1,6 @@
+import { DocKind } from '@seedcord/docs-search';
 import { beforeAll, describe, expect, it } from 'vitest';
 
-import { DocKind } from '#model/kinds';
 import { AnchorStrategy } from '#routing/AnchorStrategy';
 import { ReferenceResolver } from '#routing/ReferenceResolver';
 import { orderedPackageCandidates } from '#routing/resolve-helpers';
@@ -32,13 +32,12 @@ describe('DocsEngine mock package integration', () => {
     it('loads manifest metadata and package list', async () => {
         const manifest = await getManifest();
         const packages = engine.listPackages();
-        expect(packages).toEqual([MOCK_PACKAGE_FULL_NAME]);
+        expect(packages).toEqual([MOCK_PACKAGE_FULL_NAME, '@seedcord/fixture-base']);
 
-        expect(manifest.packages).toHaveLength(1);
-        const [manifestPackage] = manifest.packages;
-        expect(manifestPackage!.name).toBe(MOCK_PACKAGE_FULL_NAME);
+        const manifestPackage = manifest.packages.find((pkg) => pkg.name === MOCK_PACKAGE_FULL_NAME);
         expect(manifestPackage!.entryPoints).toEqual([
             'dist/index.d.ts',
+            'dist/workerd.index.d.ts',
             'dist/variable.d.ts',
             'dist/variable.d.ts',
             'dist/extra.d.ts',
@@ -59,6 +58,33 @@ describe('DocsEngine mock package integration', () => {
         expect(engine.getNodeByQualifiedName(MOCK_PACKAGE_FULL_NAME, 'MockClass')?.id).toBe(node.id);
         expect(engine.getNodeByKey(node.key)?.id).toBe(node.id);
         expect(engine.getNodeByGlobalSlug(MOCK_PACKAGE_FULL_NAME, 'mock-class')?.id).toBe(node.id);
+    });
+
+    it('includes enum member values in search tokens and display data', () => {
+        const second = pkg.indexes.search.find((entry) => entry.slug === 'mock-enum/second');
+
+        expect(second?.value).toBe('10');
+        expect(second?.tokens).toContain('10');
+    });
+
+    it('builds search entries with method text, signature aliases, and package metadata', () => {
+        const method = pkg.indexes.search.find((entry) => entry.slug === 'mock-class/rest-method');
+        const fn = pkg.indexes.search.find((entry) => entry.slug === 'mock-function');
+
+        expect(method?.tokens).toEqual(expect.arrayContaining(['rest', 'parameters']));
+        expect(fn).toMatchObject({
+            packageName: MOCK_PACKAGE_FULL_NAME,
+            packageVersion: pkg.manifest.version
+        });
+        expect(fn?.aliases).toContain('mockFunction(param: number): number');
+    });
+
+    it('includes the runtime condition on search entries for a class and its members', () => {
+        for (const slug of ['mock-runtime-host-workerd', 'mock-runtime-host-workerd/fetch']) {
+            const entry = pkg.indexes.search.find((candidate) => candidate.slug === slug);
+            expect(entry?.condition).toBe('workerd');
+            expect(entry?.tokens).toContain('workerd');
+        }
     });
 
     describe('OverrideChild node', () => {

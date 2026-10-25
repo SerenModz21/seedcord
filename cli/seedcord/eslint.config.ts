@@ -11,13 +11,31 @@ const reactHooksPlugin = reactHooks as ESLint.Plugin;
 export default createConfig({
     tsconfigRootDir: import.meta.dirname,
     relativeImports: 'parent',
-    generalIgnores: ['template/**/*.ts', '**/.build-fixture/**'],
+    generalIgnores: ['template/**/*.ts', 'tests/fixtures/**'],
     userConfigs: [
         { ...eslintReact.configs['recommended-typescript'], files: ['**/*.{ts,tsx}'] },
         {
             files: ['**/*.{ts,tsx}'],
             plugins: { 'react-hooks': reactHooksPlugin },
             rules: { ...reactHooks.configs.recommended.rules }
+        },
+        {
+            files: ['**/*.{ts,tsx}'],
+            rules: {
+                '@typescript-eslint/no-restricted-imports': [
+                    'error',
+                    {
+                        paths: [
+                            {
+                                name: 'vite',
+                                importNames: ['mergeConfig'],
+                                message:
+                                    'Use mergeViteConfig from #core/modules/userCodeConfig, which types both configs.'
+                            }
+                        ]
+                    }
+                ]
+            }
         }
     ]
 });

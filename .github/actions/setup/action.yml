@@ -5,7 +5,7 @@ inputs:
   node-version:
     description: 'Node.js version'
     required: false
-    default: '26'
+    default: '26.12.1'
   registry-url:
     description: 'Optional npm registry URL (set for publish jobs)'
     required: false

@@ -1,53 +1,99 @@
-import { existsSync } from 'node:fs';
+import { paint } from '@seedcord/errors';
 
-import { SeedcordErrorCode } from '@seedcord/errors';
-import { SeedcordError } from '@seedcord/errors/internal';
+import { openProjectWithSteps } from '#core/config/openProjectWithSteps';
+import { ProjectLoader } from '#core/config/ProjectLoader';
+import { importInstance } from '#core/modules/importInstance';
+import { openModuleLoader } from '#core/modules/openModuleLoader';
+import { printResolvedConfig } from '#core/output/printResolvedConfig';
+import { startupShell } from '#src/core/ShellMode';
 
-import { ConfigLoader } from '#core/config/ConfigLoader';
-import { ConfigLocator } from '#core/config/ConfigLocator';
-import { RuntimeModuleLoader } from '#core/modules/RuntimeModuleLoader';
+import { assertFoldersBundled } from './builder/assertFoldersBundled';
+import { checkBuildTarget, targetBuildFor } from './builder/targetBuildFor';
+import { TypeChecker } from './builder/TypeChecker';
 
-import { BootstrapWriter } from './builder/BootstrapWriter';
-import { TypeScriptProjectBuilder } from './builder/TypeScriptProjectBuilder';
+import type { Steps } from '#core/output/Steps';
+import type { Project } from '#core/project/Project';
+import type { BundleStats } from './builder/output';
+import type { NextCommand } from './builder/TargetBuild';
+import type { Build } from './builder/targetBuildFor';
+import type { SeedcordInstance } from '@seedcord/types/internal';
 
-import type { ResolvedSeedcordDevConfig } from '#core/config/schema';
-import type { ILogger } from '@seedcord/types';
+export const BUILD_STEPS = [
+    'read config',
+    'load plugins',
+    'load bot',
+    'type check',
+    'read discord',
+    'bundle',
+    'write types',
+    'boot'
+] as const;
+export type BuildStep = (typeof BUILD_STEPS)[number];
+
+export interface BuildResult {
+    bundle: BundleStats;
+    nextCommands: NextCommand[];
+}
+
+interface BuildRunnerDeps {
+    readonly steps: Steps<BuildStep>;
+    readonly projectLoader: ProjectLoader;
+    readonly typeChecker: TypeChecker;
+    readonly buildFor: (project: Project) => Build;
+}
 
 export class BuildRunner {
-    constructor(
-        private readonly locator: ConfigLocator,
-        private readonly configLoader: ConfigLoader,
-        private readonly builder: TypeScriptProjectBuilder,
-        private readonly bootstrapWriter: BootstrapWriter,
-        private readonly logger: ILogger
-    ) {}
+    constructor(private readonly deps: BuildRunnerDeps) {}
 
-    public static create(logger: ILogger): BuildRunner {
-        const moduleLoader = new RuntimeModuleLoader();
-        const locator = new ConfigLocator(logger);
-        const configLoader = new ConfigLoader(moduleLoader, logger);
-        const builder = new TypeScriptProjectBuilder(logger);
-        const bootstrapWriter = new BootstrapWriter(logger);
-
-        return new BuildRunner(locator, configLoader, builder, bootstrapWriter, logger);
+    public static productionProjectLoader(shell = startupShell): ProjectLoader {
+        return new ProjectLoader(openModuleLoader, shell, 'production');
     }
 
-    public async run(): Promise<void> {
-        const config = await this.loadConfig();
-        this.assertEntryExists(config.entry);
-        const { emittedEntry } = await this.builder.build(config);
-        await this.bootstrapWriter.write(config, emittedEntry);
-        this.logger.info('Seedcord build finished successfully.');
+    public static create(steps: Steps<BuildStep>, shell = startupShell): BuildRunner {
+        return new BuildRunner({
+            steps,
+            projectLoader: BuildRunner.productionProjectLoader(shell),
+            typeChecker: new TypeChecker(),
+            buildFor: targetBuildFor
+        });
     }
 
-    private async loadConfig(): Promise<ResolvedSeedcordDevConfig> {
-        const configPath = this.locator.locate();
-        return this.configLoader.load(configPath);
+    public async run(projectDir = process.cwd()): Promise<BuildResult> {
+        const { steps, typeChecker } = this.deps;
+
+        const opened = await openProjectWithSteps(steps, this.deps.projectLoader, {
+            projectDir,
+            check: checkBuildTarget
+        });
+        await using build = this.deps.buildFor(opened);
+        const { project } = build;
+        const { config, modules } = project;
+        printResolvedConfig(steps, config);
+
+        const instance = await steps.step('load bot', async () => {
+            const loaded = await importInstance(modules, config.instance);
+            assertFoldersBundled(loaded.config, project);
+            return loaded;
+        });
+        await steps.step(
+            'type check',
+            () => typeChecker.check(project),
+            ({ tsconfig }) => paint.path(tsconfig)
+        );
+        const bundle = await this.bundle(build, instance);
+        const writeTypes = build.writeTypes?.bind(build);
+        if (writeTypes) await steps.step('write types', writeTypes);
+        const boot = build.boot?.bind(build);
+        if (boot) await steps.step('boot', boot);
+
+        return { bundle, nextCommands: build.nextCommands(bundle) };
     }
 
-    private assertEntryExists(entryPath: string): void {
-        if (!existsSync(entryPath)) {
-            throw new SeedcordError(SeedcordErrorCode.CliEntryNotFound, [entryPath]);
-        }
+    private async bundle(build: Build, instance: SeedcordInstance): Promise<BundleStats> {
+        const { steps } = this.deps;
+        if (build.kind === 'server') return steps.step('bundle', () => build.bundle());
+
+        const ids = await steps.step('read discord', () => build.readDiscord(instance));
+        return steps.step('bundle', () => build.bundle(ids));
     }
 }

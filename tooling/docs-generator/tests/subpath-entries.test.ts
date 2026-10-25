@@ -7,11 +7,14 @@ import { TEMP_DIR } from './utils';
 
 interface ManifestEntry {
     subpath: string;
+    condition?: string;
     output: string;
     sourceEntry?: string;
+    ownVersions?: string[];
 }
 interface ManifestPackage {
     name: string;
+    sources: Record<string, { file: string }[]>;
     entries: ManifestEntry[];
     sharedModel?: string;
 }
@@ -19,7 +22,34 @@ interface Manifest {
     packages: ManifestPackage[];
 }
 
+interface ModelMember {
+    name: string;
+    canonicalReference: string;
+    excerptTokens: { canonicalReference?: string }[];
+    extendsTokenRange?: { startIndex: number; endIndex: number };
+}
+
 const MOCK_FULL_NAME = '@seedcord/mock-docs';
+
+function readSharedModelMembers(pkg: ManifestPackage): ModelMember[] {
+    // justified: this file reads only the fields ModelMember declares
+    const model = JSON.parse(readFileSync(resolve(TEMP_DIR, basename(pkg.sharedModel!)), 'utf8')) as {
+        members: { members: ModelMember[] }[];
+    };
+    return model.members[0]!.members;
+}
+
+interface ModelItem {
+    name: string;
+    members?: ModelItem[];
+}
+
+function memberNamesOf(output: string, className: string): string[] {
+    // justified: this file reads only the fields ModelItem declares
+    const model = JSON.parse(readFileSync(resolve(TEMP_DIR, basename(output)), 'utf8')) as { members: ModelItem[] };
+    const owner = model.members[0]?.members?.find((member) => member.name === className);
+    return owner?.members?.map((member) => member.name) ?? [];
+}
 
 describe('a package with more than one public entry point', () => {
     let mock: ManifestPackage;
@@ -29,18 +59,53 @@ describe('a package with more than one public entry point', () => {
         mock = manifest.packages.find((entry) => entry.name === MOCK_FULL_NAME)!;
     });
 
-    it('documents the root and every public subpath', () => {
-        expect(mock.entries.map((entry) => entry.subpath).sort()).toEqual([
-            '.',
-            './deep-entry',
-            './deep/entry',
-            './extra',
-            './shared'
+    it('documents the root, its workerd build, and every public subpath', () => {
+        expect(mock.entries.map(({ subpath, condition }) => ({ subpath, condition }))).toEqual([
+            { subpath: '.' },
+            { subpath: '.', condition: 'workerd' },
+            { subpath: './deep-entry' },
+            { subpath: './deep/entry' },
+            { subpath: './extra' },
+            { subpath: './shared' }
         ]);
     });
 
+    it('extracts the workerd build to its own model and leaves the root model alone', () => {
+        const workerd = mock.entries.find((entry) => entry.condition === 'workerd')!;
+        const root = mock.entries.find((entry) => entry.subpath === '.' && !entry.condition)!;
+
+        expect(memberNamesOf(workerd.output, 'MockRuntimeHost')).toEqual(['fetch']);
+        expect(memberNamesOf(root.output, 'MockRuntimeHost')).toContain('listen');
+        expect(memberNamesOf(root.output, 'MockRuntimeHost')).not.toContain('fetch');
+    });
+
+    it('lists the names the workerd build declares itself', () => {
+        const workerd = mock.entries.find((entry) => entry.condition === 'workerd')!;
+
+        expect(workerd.ownVersions).toEqual(['MockRuntimeHost']);
+    });
+
+    it('keys the workerd class and its members apart from the root class of the same name', () => {
+        const fileOf = (key: string): string | undefined => mock.sources[key]?.[0]?.file;
+
+        expect(fileOf('MockRuntimeHost@workerd')).toMatch(/mock\/workerd\.index\.ts$/);
+        expect(fileOf('MockRuntimeHost@workerd.fetch')).toMatch(/mock\/workerd\.index\.ts$/);
+        expect(fileOf('MockRuntimeHost')).toMatch(/mock\/runtimeHost\.ts$/);
+    });
+
+    it('keeps one row for an export both builds share', () => {
+        expect(mock.sources.mockVariable?.[0]?.file).toMatch(/mock\/variable\.ts$/);
+        expect(mock.sources['mockVariable@workerd']).toBeUndefined();
+    });
+
+    // the root `MockRuntimeHost` inherits its `fetch`. the workerd class declares its own.
+    it('keeps the workerd class members out of the default table under the root class name', () => {
+        expect(mock.sources['MockRuntimeHost.listen']?.[0]?.file).toMatch(/mock\/runtimeHost\.ts$/);
+        expect(mock.sources['MockRuntimeHost.fetch']).toBeUndefined();
+    });
+
     // `./deep-entry` and `./deep/entry` collided on one filename before the hyphen got doubled
-    it('names a nested subpath apart from a hyphenated one', () => {
+    it('gives a nested subpath a different file from a hyphenated one', () => {
         const names = mock.entries.map((entry) => basename(entry.output));
         expect(names).toContain('mock-docs.deep--entry.api.json');
         expect(names).toContain('mock-docs.deep-entry.api.json');
@@ -68,6 +133,20 @@ describe('a package with more than one public entry point', () => {
         const model = readFileSync(resolve(TEMP_DIR, basename(shared.output)), 'utf8');
         expect(model).toContain('sharedOnlyFunction');
         expect(model).not.toContain('mockFunctionWithRest');
+    });
+
+    // api extractor looks up a base class by the exact string in the extends clause
+    it('points a class at a base class another subpath exports', () => {
+        const members = readSharedModelMembers(mock);
+        const host = members.find((member) => member.name === 'SharedHost')!;
+        const bases = host.excerptTokens
+            .slice(host.extendsTokenRange!.startIndex, host.extendsTokenRange!.endIndex)
+            .flatMap((token) => (token.canonicalReference ? [token.canonicalReference] : []));
+
+        const base = members.find((member) => member.name === 'MockHostBase')!.canonicalReference;
+        // sibling packages cite the exported reference
+        expect(base).toBe(`${MOCK_FULL_NAME}!MockHostBase:class`);
+        expect(bases).toEqual([base]);
     });
 
     it('extracts a subpath model holding that subpath surface alone', () => {

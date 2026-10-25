@@ -1,9 +1,10 @@
-import { DocKind as Kind } from '@seedcord/docs-engine/client';
+import { DocKind as Kind } from '@seedcord/docs-search';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { searchIndexFor, searchPackages } from '#lib/search/buildIndex';
 
-import type { DocNode, DocSearchEntry, PackageIndexEntry } from '@seedcord/docs-engine';
+import type { DocNode, PackageIndexEntry } from '@seedcord/docs-engine';
+import type { DocSearchEntry } from '@seedcord/docs-search';
 
 function stableAt(latest: string): PackageIndexEntry['stable'] {
     const [major = '0', minor = '0'] = latest.split('.');
@@ -127,6 +128,23 @@ describe('searchIndexFor', () => {
         indexes(makeEntry({ slug: 'logger/info', name: 'info', qualifiedName: 'Logger.info', kind: Kind.Method }));
         const [result] = (await searchIndexFor('seedcord', '1.0.0')) ?? [];
         expect(result?.action.path).toBe('seedcord@1.0.0 · Logger.info');
+    });
+
+    it('labels a runtime build class and its members with the condition', async () => {
+        indexes(
+            makeEntry({ slug: 'seedcord-workerd', name: 'Seedcord', qualifiedName: 'Seedcord', condition: 'workerd' }),
+            makeEntry({
+                slug: 'seedcord-workerd/attach',
+                name: 'attach',
+                qualifiedName: 'Seedcord.attach',
+                kind: Kind.Method,
+                condition: 'workerd'
+            })
+        );
+        const [owner, member] = (await searchIndexFor('seedcord', '1.0.0')) ?? [];
+
+        expect(owner?.action.label).toBe('Seedcord (workerd)');
+        expect(member?.action).toMatchObject({ label: 'attach', path: 'seedcord@1.0.0 · Seedcord (workerd).attach' });
     });
 
     it('leaves out entries with an empty slug', async () => {

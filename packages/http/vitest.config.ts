@@ -1,7 +1,7 @@
 import { cloudflareTest } from '@cloudflare/vitest-pool-workers';
 import { aliasFromTsconfig, createVitestConfig } from '@seedcord/vitest-config';
 
-// the project entries are separate configs and do not inherit the top-level resolve
+// the workerd project keeps its own config. extending the shared one breaks @discordjs/builders in the node project
 const alias = aliasFromTsconfig(import.meta.url);
 
 export default createVitestConfig(import.meta.url, {
@@ -12,10 +12,11 @@ export default createVitestConfig(import.meta.url, {
         },
         projects: [
             {
-                // real workerd, so a node builtin fails here before it fails on a deploy
+                // real workerd, with cloudflare's node compat on like a deployed edge bot
                 plugins: [
                     cloudflareTest({
-                        miniflare: { compatibilityDate: '2026-07-01' }
+                        // cloudflare turns node compat on by default from this date
+                        miniflare: { compatibilityDate: '2026-08-04' }
                     })
                 ],
                 resolve: { alias },
@@ -40,11 +41,10 @@ export default createVitestConfig(import.meta.url, {
             },
             {
                 // no node:http on workerd
-                resolve: { alias },
+                extends: true,
                 test: {
                     name: 'node',
                     environment: 'node',
-                    testTimeout: 10_000,
                     setupFiles: ['./tests/setup.ts'],
                     include: ['tests/node/**/*.test.ts']
                 }

@@ -1,9 +1,8 @@
 import { SeedcordErrorCode } from '@seedcord/errors';
 import { afterEach, describe, expect, it } from 'vitest';
 
-import { createCore } from '#src/dispatch/dispatchInteraction';
+import { Seedcord as EdgeSeedcord } from '#src/edge/Seedcord';
 import { Seedcord } from '#src/node/Seedcord';
-import { VALID_TOKEN } from '#tests/helpers/fixtures';
 
 import type { HttpConfig, HttpEdgeConfig } from '#src/interfaces/Config';
 
@@ -17,15 +16,17 @@ function config(restOptions?: { timeout: number }): Pick<HttpConfig, 'bot' | 'su
 describe('bot.restOptions', () => {
     afterEach(() => {
         // @ts-expect-error singleton reset between tests
-        Seedcord.reset();
+        EdgeSeedcord.reset();
     });
 
-    it('passes only the configured options to the REST client on node', () => {
-        expect(new Seedcord(config({ timeout: 1234 })).rest.options).toEqual({ timeout: 1234 });
+    it('passes only the configured options to the REST client on node', async () => {
+        await using host = new Seedcord(config({ timeout: 1234 }));
+
+        expect(host.rest.options).toEqual({ timeout: 1234 });
     });
 
     it('reaches the REST client on edge, which starts with both sweepers off', () => {
-        const { options } = createCore({ ...config({ timeout: 1234 }), runtime: 'edge' }, VALID_TOKEN).rest;
+        const { options } = new EdgeSeedcord(config({ timeout: 1234 })).rest;
 
         expect(options).toMatchObject({ timeout: 1234, hashSweepInterval: 0, handlerSweepInterval: 0 });
     });
@@ -35,7 +36,7 @@ describe('bot.restOptions', () => {
         // plain JS, or a cast, can still hand the edge path a sweeper interval
         const restOptions = { handlerSweepInterval: 60_000 } as NonNullable<HttpEdgeConfig['bot']['restOptions']>;
 
-        expect(() => createCore({ ...base, bot: { ...base.bot, restOptions }, runtime: 'edge' }, VALID_TOKEN)).toThrow(
+        expect(() => new EdgeSeedcord({ ...base, bot: { ...base.bot, restOptions } })).toThrow(
             expect.objectContaining({ code: SeedcordErrorCode.ConfigEdgeRestSweeper })
         );
     });

@@ -10,7 +10,11 @@ import { LEVEL_COLOR } from '#src/palette';
 
 const ESC = String.fromCharCode(27);
 
-function createTestLogger(formatter: LogFormatter, level = 'info'): { logger: winston.Logger; output: string[] } {
+function createTestLogger(
+    formatter: LogFormatter,
+    level = 'info',
+    formats = formatter.pretty()
+): { logger: winston.Logger; output: string[] } {
     const output: string[] = [];
 
     const writableStream = new Writable({
@@ -22,7 +26,7 @@ function createTestLogger(formatter: LogFormatter, level = 'info'): { logger: wi
 
     const testTransport = new winston.transports.Stream({
         stream: writableStream,
-        format: winston.format.combine(...formatter.pretty())
+        format: winston.format.combine(...formats)
     });
 
     const logger = winston.createLogger({
@@ -64,6 +68,27 @@ describe('LogFormatter', () => {
             expect(output[0]).toContain('Something happened');
             expect(output[0]).toContain('test.ts');
             expect(output[0]).toContain('42');
+        });
+
+        describe('safe object serialization', () => {
+            it('renders fields from an object with a circular reference', () => {
+                const { logger, output } = createTestLogger(formatter);
+                const circular: Record<string, unknown> = { name: 'request' };
+                circular.self = circular;
+
+                logger.info('Request received', circular);
+
+                expect(output[0]).toContain('name');
+                expect(output[0]).toContain('request');
+                expect(output[0]).toContain('[Circular]');
+            });
+
+            it('renders a BigInt in an object extra', () => {
+                const { logger, output } = createTestLogger(formatter);
+                logger.info('Counter updated', { count: 900_719_925_474_099_312_345n });
+
+                expect(output[0]).toContain('"count": "900719925474099312345"');
+            });
         });
 
         it('handles multiple format specifiers', () => {
@@ -251,8 +276,7 @@ describe('LogFormatter', () => {
 
     describe('level coloring', () => {
         const originalChalkLevel = chalk.level;
-        // vitest workers are non-TTY, so chalk auto-detects level 0 and emits no color, making the assertions
-        // below vacuous. force truecolor so the hex output is real.
+        // chalk turns color off in vitest workers since they aren't a TTY
         beforeEach(() => {
             chalk.level = 3;
         });
@@ -316,80 +340,46 @@ describe('LogFormatter', () => {
     });
 
     describe('json format', () => {
-        it('emits parseable json with the message intact on the default path', () => {
-            const output: string[] = [];
-            const stream = new Writable({
-                write(chunk: Buffer, _encoding, callback) {
-                    output.push(chunk.toString());
-                    callback();
-                }
-            });
-            const logger = winston.createLogger({
-                levels: NODE_LEVELS,
-                level: 'trace',
-                format: winston.format.combine(formatter.createPreFormat()),
-                transports: [
-                    new winston.transports.Stream({ stream, format: winston.format.combine(...formatter.json()) })
-                ]
-            });
+        it('keeps ANSI in the message and the extras when it is not stripping', () => {
+            const { logger, output } = createTestLogger(formatter, 'info', formatter.json({ stripAnsi: false }));
+            logger.info(`${ESC}[1mplain${ESC}[22m json`, `${ESC}[2mextra${ESC}[22m`);
 
-            logger.info('plain json');
-
-            const parsed = JSON.parse(output.join('')) as { message: string };
-            expect(parsed.message).toBe('plain json');
+            const parsed = JSON.parse(output.join('')) as { message: string; extras: string[] };
+            expect(parsed.message).toBe(`${ESC}[1mplain${ESC}[22m json`);
+            expect(parsed.extras).toEqual([`${ESC}[2mextra${ESC}[22m`]);
         });
 
-        it('strips ANSI from the message and a colored error', () => {
-            const output: string[] = [];
-            const stream = new Writable({
-                write(chunk: Buffer, _encoding, callback) {
-                    output.push(chunk.toString());
-                    callback();
-                }
-            });
-            const logger = winston.createLogger({
-                levels: NODE_LEVELS,
-                level: 'trace',
-                format: winston.format.combine(formatter.createPreFormat()),
-                transports: [
-                    new winston.transports.Stream({
-                        stream,
-                        format: winston.format.combine(...formatter.json({ stripAnsi: true }))
-                    })
-                ]
-            });
+        it('interpolates specifiers and keeps only the unconsumed args in extras', () => {
+            const { logger, output } = createTestLogger(formatter, 'info', formatter.json({ stripAnsi: true }));
+            logger.info('%s ran %j', 'ping', { id: 4 }, 'extra', { requestId: 'abc' }, new TypeError('boom'));
 
+            const record = JSON.parse(output[0] ?? '') as Record<string, unknown>;
+            expect(record.message).toBe('ping ran {"id":4}');
+            expect(record).not.toHaveProperty('requestId');
+            expect(record.extras).toMatchObject([
+                'extra',
+                { requestId: 'abc' },
+                { name: 'TypeError', message: 'boom' }
+            ]);
+            expect(JSON.stringify(record.extras)).toContain(String.raw`TypeError: boom\n    at `);
+        });
+
+        it('strips ANSI from the message, a colored error and a string extra', () => {
+            const { logger, output } = createTestLogger(formatter, 'info', formatter.json({ stripAnsi: true }));
             const err = new Error('bad request');
             err.name = `${ESC}[1m${ESC}[31mSeedcordError${ESC}[39m${ESC}[22m`;
-            logger.error(`${ESC}[1mfailed${ESC}[22m`, err);
+            logger.error(`${ESC}[1mfailed${ESC}[22m`, err, `${ESC}[2mextra${ESC}[22m`);
 
             const line = output.join('');
             expect(line).not.toContain(ESC);
-            const parsed = JSON.parse(line) as { message: string; stack?: string };
+            const parsed = JSON.parse(line) as { message: string; stack?: string; extras: unknown[] };
             expect(parsed.message).toContain('failed');
             expect(parsed.stack).toContain('SeedcordError');
+            expect(parsed.extras).toContain('extra');
         });
 
         it('strips an aggregate whose members reach itself', () => {
-            const output: string[] = [];
-            const stream = new Writable({
-                write(chunk: Buffer, _encoding, callback) {
-                    output.push(chunk.toString());
-                    callback();
-                }
-            });
-            const logger = winston.createLogger({
-                levels: NODE_LEVELS,
-                level: 'trace',
-                format: winston.format.combine(formatter.createPreFormat()),
-                transports: [
-                    new winston.transports.Stream({
-                        stream,
-                        format: winston.format.combine(...formatter.json({ stripAnsi: true }))
-                    })
-                ]
-            });
-
+            const { logger, output } = createTestLogger(formatter, 'info', formatter.json({ stripAnsi: true }));
             const cyclic = new AggregateError([], 'loops');
             cyclic.errors.push(cyclic);
 
@@ -398,23 +388,7 @@ describe('LogFormatter', () => {
         });
 
         it('strips a cause chain too deep to recurse', () => {
-            const stream = new Writable({
-                write(_chunk: Buffer, _encoding, callback) {
-                    callback();
-                }
-            });
-            const logger = winston.createLogger({
-                levels: NODE_LEVELS,
-                level: 'trace',
-                format: winston.format.combine(formatter.createPreFormat()),
-                transports: [
-                    new winston.transports.Stream({
-                        stream,
-                        format: winston.format.combine(...formatter.json({ stripAnsi: true }))
-                    })
-                ]
-            });
-
+            const { logger } = createTestLogger(formatter, 'info', formatter.json({ stripAnsi: true }));
             let deep = new Error('leaf');
             for (let level = 0; level < 20_000; level++) deep = new Error(`level ${level}`, { cause: deep });
 

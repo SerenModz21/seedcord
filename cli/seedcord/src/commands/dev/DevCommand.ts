@@ -1,19 +1,28 @@
+import { WORDMARK } from '@seedcord/errors/internal';
+import { isInteractive } from '@seedcord/utils/internal';
 import { render } from 'ink';
 import React from 'react';
 
 import { BaseCommand } from '#core/BaseCommand';
+import { cliLogger } from '#core/cliLogger';
+import { StateFolder } from '#core/state/StateFolder';
 import { DevApp } from '#ui/DevApp';
+import { devPrefsFile } from '#ui/devPrefs';
 import { profileFrame, profileReport, profileStdout } from '#ui/profile';
 import { DevStore } from '#ui/stores/DevStore';
 import { LogStore } from '#ui/stores/LogStore';
 
 import { DevRunner } from './DevRunner';
+import { DevSignals } from './DevSignals';
+import { runPlain } from './runPlain';
 
 import type { Command } from '@commander-js/extra-typings';
 
 export class DevCommand extends BaseCommand {
+    private readonly logger = cliLogger('Dev');
+
     constructor() {
-        super('dev', 'Run a Seedcord instance from the config file', 'Dev');
+        super('dev', 'Run the bot from the config file');
     }
 
     public register(program: Command): void {
@@ -23,23 +32,18 @@ export class DevCommand extends BaseCommand {
             .action(async () => {
                 profileStdout();
                 const store = new DevStore();
-                const runner = DevRunner.create(this.logger, store);
-
-                // ink intercepts Ctrl-C under raw mode. this fires only when stdin is not raw.
-                const onSignal = (): void => {
-                    void runner.quit();
-                };
-                process.once('SIGINT', onSignal);
-                process.once('SIGTERM', onSignal);
+                const stateFolder = new StateFolder(process.cwd(), this.logger);
+                const runner = DevRunner.create(store, stateFolder);
 
                 try {
-                    await this.runDevApp(store, runner);
+                    // ink takes Ctrl-C itself in raw mode
+                    using _signals = DevSignals.own(() => void runner.quit());
+                    await (isInteractive()
+                        ? this.runDevApp(store, runner, stateFolder)
+                        : runPlain(store, runner, process.stdin));
                 } catch (error: unknown) {
-                    this.logger.error('Seedcord dev failed', error);
+                    this.logger.error(`${WORDMARK} dev failed`, error);
                     process.exitCode = 1;
-                } finally {
-                    process.off('SIGINT', onSignal);
-                    process.off('SIGTERM', onSignal);
                 }
 
                 // the in-ui logs went with the unmount
@@ -60,19 +64,23 @@ export class DevCommand extends BaseCommand {
     }
 
     private async printLogLocation(): Promise<void> {
-        await this.write('seedcord dev stopped. logs: logs/\n');
+        await this.write(`${WORDMARK} dev stopped. logs: logs/\n`);
 
         const report = profileReport();
         if (report !== null) await this.write(`${report}\n`);
     }
 
-    private async runDevApp(store: DevStore, runner: DevRunner): Promise<void> {
+    private async runDevApp(store: DevStore, runner: DevRunner, stateFolder: StateFolder): Promise<void> {
         let failure: { error: unknown } | undefined;
         let runResult: Promise<void> = Promise.resolve();
 
         const { unmount, waitUntilExit } = render(
             React.createElement(DevApp, {
                 store,
+                initialPrefs: stateFolder.read(devPrefsFile),
+                onPrefsChange: (prefs) => {
+                    stateFolder.write(devPrefsFile, prefs);
+                },
                 onQuit: () => runner.quit(),
                 onDisconnect: () => runner.disconnect(),
                 onRestart: () => runner.restart(),
@@ -94,6 +102,8 @@ export class DevCommand extends BaseCommand {
             // the alternate screen restores the terminal and scrollback on quit, and ink's ESC[3J purge never fires
             {
                 exitOnCtrlC: false,
+                // LogStore turns console calls into log records
+                patchConsole: false,
                 alternateScreen: true,
                 onRender: ({ renderTime }) => {
                     profileFrame(renderTime);

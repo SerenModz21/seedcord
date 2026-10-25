@@ -7,64 +7,24 @@ import { Envapter, PortableSource } from 'envapt';
 import { afterEach, beforeEach, describe, expect, it, vi, type MockInstance } from 'vitest';
 
 import { SlashHandler } from '#handlers/interaction/SlashHandler';
-import { createSigner } from '#tests/helpers/ed25519';
-import { nullPathConfig, VALID_TOKEN } from '#tests/helpers/fixtures';
+import { restClients } from '#tests/helpers/restClients';
 
-import { capturingCtx, manifestFor, signedRequest, slashPayload } from './harness';
+import { capturingCtx, readyEngine, routedHandler, signedRequest, slashPayload, type BotClasses } from './harness';
 
-import type { EngineContext } from '#src/createSeedcord';
-import type { Manifest } from '#src/manifest/Manifest';
 import type { Gate, GateContextBase } from '@seedcord/core';
 
-const rest = vi.hoisted(() => {
-    interface FakeRestInstance {
-        post: ReturnType<typeof vi.fn>;
-        patch: ReturnType<typeof vi.fn>;
-    }
-    const instances: FakeRestInstance[] = [];
-    class FakeRest {
-        public post = vi.fn().mockResolvedValue({ resource: { message: { id: 'm-1' } } });
-        public patch = vi.fn().mockResolvedValue({ id: 'm-1' });
-
-        public constructor() {
-            instances.push(this);
-        }
-
-        public setToken(): this {
-            return this;
-        }
-    }
-    return { instances, FakeRest };
-});
-
-vi.mock('@discordjs/rest', async (importOriginal) => ({
-    ...(await importOriginal<object>()),
-    REST: rest.FakeRest
-}));
-
-type Engine = (request: Request, ctx?: EngineContext) => Promise<Response>;
-
-function guarded(gates: Gate<GateContextBase>[]): Manifest {
+function guarded(gates: Gate<GateContextBase>[]): BotClasses {
     class Guarded extends SlashHandler<never> {
         async execute(): Promise<void> {
             await this.reply('ran');
         }
     }
     Reflect.defineMetadata(GatedMetadataKey, gates, Guarded);
-    return manifestFor(InteractionKind.Slash, 'guarded', Guarded);
+    return routedHandler(InteractionKind.Slash, 'guarded', Guarded);
 }
 
-// createSeedcord reads the public key and token off the environment at build time. bind them per engine.
-async function engineFor(
-    manifest: Manifest,
-    production: boolean
-): Promise<{ handle: Engine; signer: Awaited<ReturnType<typeof createSigner>> }> {
-    const signer = await createSigner();
-    const source: Record<string, string> = { DISCORD_PUBLIC_KEY: signer.publicKeyHex, DISCORD_BOT_TOKEN: VALID_TOKEN };
-    if (production) source.ENVIRONMENT = 'production';
-    Envapter.useSource(new PortableSource(source));
-    const { createSeedcord } = await import('#src/createSeedcord');
-    return { handle: createSeedcord(nullPathConfig, manifest), signer };
+function engineFor(classes: BotClasses, production: boolean): ReturnType<typeof readyEngine> {
+    return readyEngine(classes, production ? { env: { ENVIRONMENT: 'production' } } : {});
 }
 
 // this clock moves only when a gate body advances it
@@ -83,7 +43,7 @@ function slowWarnCount(warn: WarnSpy, gateName: string): number {
 }
 
 beforeEach(() => {
-    rest.instances.length = 0;
+    restClients().length = 0;
 });
 
 afterEach(() => {
@@ -96,7 +56,8 @@ describe('slow-gate dev warning', () => {
         const warn = vi.spyOn(Logger.prototype, 'warn').mockImplementation(() => undefined);
         const advance = fakeClock();
         const slow = defineGate('slowgate', () => advance(800));
-        const { handle, signer } = await engineFor(guarded([slow]), false);
+        using engine = await engineFor(guarded([slow]), false);
+        const { handle, signer } = engine;
         const request = await signedRequest(signer, slashPayload('guarded'));
         const ctx = capturingCtx();
 
@@ -111,7 +72,8 @@ describe('slow-gate dev warning', () => {
         const advance = fakeClock();
         const first = defineGate('firstgate', () => advance(400));
         const second = defineGate('secondgate', () => advance(400));
-        const { handle, signer } = await engineFor(guarded([first, second]), false);
+        using engine = await engineFor(guarded([first, second]), false);
+        const { handle, signer } = engine;
         const request = await signedRequest(signer, slashPayload('guarded'));
         const ctx = capturingCtx();
 
@@ -126,7 +88,8 @@ describe('slow-gate dev warning', () => {
         const warn = vi.spyOn(Logger.prototype, 'warn').mockImplementation(() => undefined);
         const advance = fakeClock();
         const fast = defineGate('fastgate', () => advance(10));
-        const { handle, signer } = await engineFor(guarded([fast]), false);
+        using engine = await engineFor(guarded([fast]), false);
+        const { handle, signer } = engine;
         const request = await signedRequest(signer, slashPayload('guarded'));
         const ctx = capturingCtx();
 
@@ -140,7 +103,8 @@ describe('slow-gate dev warning', () => {
         const warn = vi.spyOn(Logger.prototype, 'warn').mockImplementation(() => undefined);
         const advance = fakeClock();
         const slow = defineGate('slowgate', () => advance(800));
-        const { handle, signer } = await engineFor(guarded([slow]), true);
+        using engine = await engineFor(guarded([slow]), true);
+        const { handle, signer } = engine;
         const request = await signedRequest(signer, slashPayload('guarded'));
         const ctx = capturingCtx();
 

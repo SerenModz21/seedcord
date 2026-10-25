@@ -1,9 +1,10 @@
 import { cpus, totalmem } from 'node:os';
 import process from 'node:process';
 
-import { Envapter } from 'envapt';
+import { WORDMARK } from '@seedcord/errors/internal';
+import { Converters, Envapter } from 'envapt';
 
-const enabled = Envapter.getBoolean('SEEDCORD_DEV_PROFILE', false);
+const enabled = Envapter.getAs('SEEDCORD_DEV_PROFILE', Converters.Boolean, false);
 
 const MEDIAN = 0.5;
 const NEAR_WORST = 0.99;
@@ -121,7 +122,7 @@ export function profileReport(): string | null {
     const idleRate = idleSeconds > 0 ? (idleFrames / idleSeconds).toFixed(1) : '0.0';
 
     return [
-        'seedcord dev profile',
+        `${WORDMARK} dev profile`,
         ...machine(),
         `  session      ${ms(session)}`,
         ...startup(),

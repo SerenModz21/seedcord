@@ -1,12 +1,18 @@
 node_modules/
 dist/
-logs/
+/logs/
 *.log
 *.tsbuildinfo
 .eslintcache
 .seedcord/
+{{#if isEdge}}
+.cloudflare/
+{{/if}}
 
 .env*
 !.env.example
+{{#if isEdge}}
+.dev.vars*
+{{/if}}
 
 .DS_Store

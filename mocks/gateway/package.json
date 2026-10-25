@@ -1,9 +1,9 @@
 {
     "name": "@seedcord/mock-gateway",
     "type": "module",
-    "version": "0.2.34",
+    "version": "0.2.35-next.0",
     "engines": {
-        "node": ">=24.11"
+        "node": "^24.22.1 || >=26.12.1"
     },
     "private": true,
     "description": "Gateway-transport mock bot for demonstration and testing",

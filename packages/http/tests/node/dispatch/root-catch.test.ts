@@ -5,9 +5,9 @@ import { interactionMiddleware, MiddlewareRegistry } from '@seedcord/core/intern
 import { Envapter, PortableSource } from 'envapt';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import { createCore } from '#src/dispatch/dispatchInteraction';
 import { emptyRouteMaps } from '#src/dispatch/resolve';
 import { buildEngine } from '#src/engine';
+import { testCore } from '#tests/helpers/core';
 import { createSigner } from '#tests/helpers/ed25519';
 import { nullPathConfig, VALID_TOKEN } from '#tests/helpers/fixtures';
 
@@ -15,18 +15,6 @@ import { signedRequest, slashPayload } from './harness';
 
 import type { InteractionMiddlewareConstructor } from '#handlers/constructors';
 import type { SubscriptionData } from '@seedcord/core';
-
-vi.mock('@discordjs/rest', async (importOriginal) => {
-    class FakeRest {
-        public post = vi.fn().mockResolvedValue({ resource: { message: { id: 'm-1' } } });
-        public patch = vi.fn().mockResolvedValue({ id: 'm-1' });
-
-        public setToken(): this {
-            return this;
-        }
-    }
-    return { ...(await importOriginal<object>()), REST: FakeRest };
-});
 
 afterEach(() => {
     Envapter.useSource(new PortableSource({}));
@@ -38,9 +26,9 @@ async function routerThrows(thrown: unknown): Promise<{
     seen: SubscriptionData<'unhandledInteractionError'>[];
 }> {
     const signer = await createSigner();
-    Envapter.useSource(new PortableSource({ DISCORD_PUBLIC_KEY: signer.publicKeyHex, DISCORD_BOT_TOKEN: VALID_TOKEN }));
+    Envapter.useSource(new PortableSource({ DISCORD_BOT_TOKEN: VALID_TOKEN }));
 
-    const core = createCore(nullPathConfig, VALID_TOKEN);
+    const core = testCore(nullPathConfig, VALID_TOKEN);
     const seen: SubscriptionData<'unhandledInteractionError'>[] = [];
     core.bus.on('unhandledInteractionError', (payload) => seen.push(payload));
 
@@ -48,10 +36,11 @@ async function routerThrows(thrown: unknown): Promise<{
     vi.spyOn(maps[InteractionKind.Slash], 'get').mockImplementation(() => {
         throw thrown;
     });
-    const { handle } = buildEngine(
+    const handle = buildEngine(
         core,
         maps,
-        new MiddlewareRegistry<InteractionMiddlewareConstructor>(interactionMiddleware)
+        new MiddlewareRegistry<InteractionMiddlewareConstructor>(interactionMiddleware),
+        signer.publicKeyHex
     );
 
     return { response: await handle(await signedRequest(signer, slashPayload('anything'))), seen };

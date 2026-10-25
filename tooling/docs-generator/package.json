@@ -2,7 +2,7 @@
     "name": "@seedcord/docs-generator",
     "version": "0.2.4",
     "engines": {
-        "node": ">=24.11",
+        "node": "^24.22.1 || >=26.12.1",
         "bun": ">=1.4.2"
     },
     "private": true,
@@ -25,6 +25,12 @@
             "import": {
                 "types": "./dist/manifest-fields.d.mts",
                 "default": "./dist/manifest-fields.mjs"
+            }
+        },
+        "./runtime-build": {
+            "import": {
+                "types": "./dist/RuntimeBuild.d.mts",
+                "default": "./dist/RuntimeBuild.mjs"
             }
         }
     },

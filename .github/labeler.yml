@@ -58,6 +58,9 @@
 '📦 eslint-utils':
   - changed-files:
       - any-glob-to-any-file: 'tooling/eslint-utils/**'
+'📦 cli-prompts':
+  - changed-files:
+      - any-glob-to-any-file: 'tooling/cli-prompts/**'
 '📦 tsconfig':
   - changed-files:
       - any-glob-to-any-file: 'tooling/tsconfig/**'
@@ -76,6 +79,9 @@
 '📦 docs-engine':
   - changed-files:
       - any-glob-to-any-file: 'tooling/docs-engine/**'
+'📦 docs-search':
+  - changed-files:
+      - any-glob-to-any-file: 'tooling/docs-search/**'
 '🏠 home':
   - changed-files:
       - any-glob-to-any-file: 'apps/home/**'

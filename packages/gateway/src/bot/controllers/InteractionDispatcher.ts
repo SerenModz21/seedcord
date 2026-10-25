@@ -4,7 +4,6 @@ import { HmrModuleHandler } from '@seedcord/core/hmr';
 import {
     InteractionMetadataKey,
     interactionRoutesOf,
-    asError,
     outcomeFor,
     queuedMsFor,
     reportDispatch,
@@ -17,13 +16,13 @@ import {
     runHandlerGates,
     slowGateMonitor
 } from '@seedcord/core/internal';
-import { drainInFlight } from '@seedcord/core/node/internal';
+import { InFlight } from '@seedcord/core/node/internal';
 import { prefixOf } from '@seedcord/custom-id';
 import { SeedcordErrorCode, paint } from '@seedcord/errors';
-import { SeedcordError } from '@seedcord/errors/internal';
+import { SeedcordError, SeedcordTypeError } from '@seedcord/errors/internal';
 import { Logger } from '@seedcord/logger';
-import { formatFilePath, hasKeys } from '@seedcord/utils';
-import { traverseDirectory } from '@seedcord/utils/node';
+import { formatFilePath, hasKeys, importFiles } from '@seedcord/utils';
+import { asError } from '@seedcord/utils/internal';
 import { Events } from 'discord.js';
 import { Envapter } from 'envapt';
 
@@ -115,8 +114,7 @@ export class InteractionDispatcher implements Initializeable, HmrAware {
     private readonly keysToIgnore = new Set<CustomIdMatcher>();
     private readonly middlewares = new MiddlewareRegistry<InteractionMiddlewareConstructor>(interactionMiddleware);
 
-    private readonly inFlight = new Set<Promise<void>>();
-    private draining = false;
+    private readonly inFlight = new InFlight(this.logger, 'Interactions');
 
     // a reload reports on the hmr channel
     private loading = false;
@@ -260,24 +258,24 @@ export class InteractionDispatcher implements Initializeable, HmrAware {
     }
 
     private async loadHandlers(dir: string): Promise<void> {
-        await traverseDirectory(dir, (fullPath, relativePath, imported) => {
+        for await (const { fullPath, relativePath, imported } of importFiles(dir)) {
             for (const val of Object.values(imported)) {
                 if (!this.isHandlerClass(val)) continue;
                 this.registerHandler(val, relativePath);
                 this.hmrHandler?.trackHandler(fullPath, val);
             }
-        });
+        }
     }
 
     private async loadMiddlewares(dir: string): Promise<void> {
-        await traverseDirectory(dir, (fullPath, relativePath, imported) => {
+        for await (const { fullPath, relativePath, imported } of importFiles(dir)) {
             for (const val of Object.values(imported)) {
                 if (!this.isMiddlewareClass(val)) continue;
 
                 this.registerMiddleware(val, relativePath);
                 this.hmrHandler?.trackMiddleware(fullPath, val);
             }
-        });
+        }
     }
 
     private registerMiddleware(middlewareCtor: InteractionMiddlewareConstructor, relativePath: string): void {
@@ -317,11 +315,14 @@ export class InteractionDispatcher implements Initializeable, HmrAware {
                 const existing = this.maps[kind].get(route);
                 // a different class on the same route would silently shadow (last write wins)
                 if (existing && existing !== handlerClass) {
-                    throw new SeedcordError(SeedcordErrorCode.InteractionDuplicateRoute, [
+                    throw new SeedcordTypeError(SeedcordErrorCode.CoreDuplicateName, [
+                        'route',
                         `${kind}:${route}`,
-                        // a stale hmr artifact list can leave a class in a route map after its entry here is gone
-                        `${existing.name} (${this.handlerFiles.get(existing) ?? 'unknown file'})`,
-                        `${handlerClass.name} (${from})`
+                        [
+                            // a stale hmr artifact list can leave a class in a route map after its entry here is gone
+                            `${paint.bold(existing.name)} (${paint.path(this.handlerFiles.get(existing) ?? 'unknown file')})`,
+                            `${paint.bold(handlerClass.name)} (${paint.path(from)})`
+                        ]
                     ]);
                 }
                 writes.push({ kind, route });
@@ -352,24 +353,23 @@ export class InteractionDispatcher implements Initializeable, HmrAware {
 
     private attachToClient(): void {
         this.core.bot.client.on(Events.InteractionCreate, (interaction) => {
-            if (this.draining) return;
+            if (this.inFlight.closed) return;
             this.core.bus[PublishDefault]('anyInteraction', { interaction });
             const run = this.handleInteraction(interaction).catch((caught: unknown) => {
                 const error = asError(caught);
                 this.logger.error(`[${paint.coral.bold('UNHANDLED ERROR AT ROOT')}] ${error.name}`, error.stack);
                 this.core.bus[PublishDefault]('unhandledInteractionError', { error });
             });
-            this.inFlight.add(run);
-            void run.finally(() => this.inFlight.delete(run));
+            this.inFlight.track(run);
         });
     }
 
     public stopAccepting(): void {
-        this.draining = true;
+        this.inFlight.close();
     }
 
     public drain(timeoutMs: number): Promise<void> {
-        return drainInFlight(this.inFlight, timeoutMs, this.logger, 'Interactions');
+        return this.inFlight.drain(timeoutMs);
     }
 
     private async handleCustomIdInteraction<TInteraction extends Interaction & { customId: string }>(

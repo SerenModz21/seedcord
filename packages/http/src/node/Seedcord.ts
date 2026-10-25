@@ -1,46 +1,27 @@
 import { once } from 'node:events';
 import { createServer } from 'node:http';
 
-import { REST } from '@discordjs/rest';
-import { Bus } from '@seedcord/core';
-import {
-    bindBotColor,
-    busLoggerOf,
-    getDevChannel,
-    HmrManager,
-    interactionMiddleware,
-    MiddlewareRegistry
-} from '@seedcord/core/internal';
-import { CoordinatedShutdown, CoordinatedStartup, Pluggable } from '@seedcord/core/node';
-import {
-    CommandRegistry,
-    DRAIN_TASK_TIMEOUT_MS,
-    DRAIN_WINDOW_MS,
-    drainInFlight,
-    ShutdownPhase,
-    shutdownOf,
-    StartupPhase,
-    SubscriberLoader
-} from '@seedcord/core/node/internal';
-import { SeedcordErrorCode, paint } from '@seedcord/errors';
-import { applicationIdFromToken, SeedcordError, validateDiscordToken } from '@seedcord/errors/internal';
-import { Logger, LoggerChannelRegistry } from '@seedcord/logger';
-import { installNodeDefaults } from '@seedcord/logger/node';
-import { MemoryRateLimiter } from '@seedcord/rate-limiter';
-import { HostAugmentTarget, HostVersion, SeedcordBrand } from '@seedcord/types/internal';
-import { Routes } from 'discord-api-types/v10';
+import { bindBotColor, busLoggerOf, connectDevChannel, getDevChannel, HmrManager } from '@seedcord/core/internal';
+import { CoordinatedShutdown, CoordinatedStartup, ServerHost } from '@seedcord/core/node';
+import { DRAIN_TASK_TIMEOUT_MS, HealthResponder, ShutdownPhase, StartupPhase } from '@seedcord/core/node/internal';
+import { paint, SeedcordErrorCode } from '@seedcord/errors';
+import { SeedcordError } from '@seedcord/errors/internal';
+import { Logger } from '@seedcord/logger';
+import { HostAugmentTarget, HostListenHost, HostStartup, HostVersion, SeedcordBrand } from '@seedcord/types/internal';
+import { isPortInUse } from '@seedcord/utils/internal';
 import { Envapter } from 'envapt';
 
-import { emptyRouteMaps } from '#src/dispatch/resolve';
-import { EmojiInjector } from '#src/emojis/EmojiInjector';
-import { buildEngine } from '#src/engine';
+import { HttpStartupTasks } from '#src/HttpStartupTasks';
+import { InteractionsService } from '#src/InteractionsService';
+import { usernameOf } from '#src/username';
 import { version as packageVersion } from '#src/version';
 
-import { InteractionDispatcher } from './InteractionDispatcher';
+import { NodeEndpoint } from './NodeEndpoint';
 import { toWebRequest, writeWebResponse } from './webBridge';
 
-import type { InteractionMiddlewareConstructor } from '#handlers/constructors';
-import type { HttpConfig } from '#interfaces/Config';
+import type { HttpServerConfig } from '#interfaces/Config';
+import type { REST } from '@discordjs/rest';
+import type { Bus } from '@seedcord/core';
 import type { IRateLimiter } from '@seedcord/types';
 import type { SeedcordInstance } from '@seedcord/types/internal';
 import type { Server } from 'node:http';
@@ -49,20 +30,14 @@ import type { AddressInfo } from 'node:net';
 const DEFAULT_PORT = 3000;
 const SERVER_SHUTDOWN_TIMEOUT_MS = 5000;
 
-type RuntimeOfConfig<Cfg extends HttpConfig> = Cfg extends { runtime: 'edge' } ? 'edge' : 'server';
-
 /**
- * The HTTP-interactions bot host, a long-running node server around the engine.
+ * The HTTP-interactions bot on node. `start()` loads handlers from `config.bot.interactions.path`
+ * and binds a server on `port`. With `port: false`, your own server passes requests to `fetch()`.
  *
- * Discovers handlers from `config.bot.interactions.path`, verifies and dispatches interactions on
- * `start()`, and runs coordinated shutdown with an in-flight drain. The edge deploy path calls
- * `createSeedcord` from a generated entry.
+ * Shutdown waits up to 5s for interactions that are still running.
  */
 // tests/node/seedcord-core.types-test.ts checks this class against Core in place of an implements clause
-export class Seedcord<Cfg extends HttpConfig = HttpConfig>
-    extends Pluggable<'http', RuntimeOfConfig<Cfg>>
-    implements SeedcordInstance
-{
+export class Seedcord extends ServerHost<'http'> implements SeedcordInstance {
     // the CLI reads these to detect and augment the instance
     /** @internal */
     public readonly [SeedcordBrand] = true;
@@ -70,6 +45,8 @@ export class Seedcord<Cfg extends HttpConfig = HttpConfig>
     public readonly [HostAugmentTarget] = '@seedcord/http';
     /** @internal */
     public readonly [HostVersion]: string = packageVersion;
+    /** @internal */
+    public [HostListenHost]?: string | undefined;
 
     /** Discord REST client built from `bot.restOptions`. `start()` sets the token. */
     public readonly rest: REST;
@@ -80,87 +57,97 @@ export class Seedcord<Cfg extends HttpConfig = HttpConfig>
     /** @see {@link Bus} */
     public readonly bus: Bus;
 
-    private readonly subscribers: SubscriberLoader;
+    readonly #service: InteractionsService;
+    readonly #endpoint: NodeEndpoint;
+    readonly #hmrManager: HmrManager;
+    readonly #logger = new Logger('Server', { channel: 'bot' });
 
-    private readonly interactions?: InteractionDispatcher;
-    private readonly commandRegistry?: CommandRegistry;
-    private readonly emojiInjector = new EmojiInjector(this);
-    private readonly hmrManager: HmrManager;
-    private readonly logger = new Logger('Server', { channel: 'bot' });
+    #server?: Server;
+    #boundPort?: number;
+    #fetchedUsername?: string | undefined;
 
-    private token?: string;
-    private server?: Server;
-    private boundPort?: number;
-    private fetchedUsername?: string | undefined;
+    public readonly config: HttpServerConfig;
 
-    public readonly config: HttpConfig;
-
-    constructor(config: Cfg) {
-        super(new CoordinatedShutdown(config.lifecycle?.shutdownDeadline), new CoordinatedStartup());
+    /**
+     * @throws A **SeedcordError** when another `Seedcord` exists in this process and has not shut down.
+     * @throws A **SeedcordError** when the running Node or Bun is older than the range in `engines`.
+     */
+    constructor(config: HttpServerConfig) {
+        super('http', new CoordinatedShutdown(config.lifecycle?.shutdownDeadline), new CoordinatedStartup());
         this.config = config;
-        this.rest = new REST(config.bot.restOptions);
 
-        installNodeDefaults(config.logger);
         bindBotColor(() => this.config.botColor);
 
-        this.hmrManager = new HmrManager();
-        this.hmrManager.init();
+        this.#service = new InteractionsService(this, config, config.bot.restOptions);
+        this.rest = this.#service.rest;
+        this.rateLimiter = this.#service.rateLimiter;
+        this.bus = this.#service.bus;
+        this.#endpoint = new NodeEndpoint(
+            this.#service,
+            this.#logger,
+            HealthResponder.fromOption(config.healthCheck),
+            this[HostStartup]
+        );
 
-        const interactions = this.config.bot.interactions;
-        if (interactions.path) {
-            this.interactions = new InteractionDispatcher(interactions.path, interactions.middlewares);
-        }
+        this.#hmrManager = new HmrManager();
+        this.#hmrManager.init(connectDevChannel());
 
-        if (this.config.bot.commands.path) this.commandRegistry = new CommandRegistry(this);
-
-        this.rateLimiter = config.store ?? new MemoryRateLimiter();
-        this.bus = new Bus(this);
-        this.subscribers = new SubscriberLoader(this.bus, config.subscribers.path);
-
-        this.registerStartupTasks();
+        this.#registerStartupTasks();
+        this.#registerShutdownTasks();
     }
 
     /** The bot's discord username, populated by the ready fetch. */
     public get username(): string | undefined {
-        return this.fetchedUsername;
+        return this.#fetchedUsername;
     }
 
-    /** The bound server port, populated once `start()` is listening. */
+    /** The bound server port, set once `start()` is listening. Stays `undefined` with `port: false`. */
     public get port(): number | undefined {
-        return this.boundPort;
+        return this.#boundPort;
     }
 
     /**
      * Starts the host and runs the startup tasks.
      */
-    public async start(): Promise<this> {
-        try {
-            await super.init();
-        } catch (caught) {
-            await shutdownOf(this).run(1, false);
-            Seedcord.reset(this);
-            throw caught;
-        }
-        return this;
+    public start(): Promise<this> {
+        const starting = this.init();
+        this.#endpoint.startWith(starting);
+        return starting;
     }
 
-    protected static override reset(host?: object): boolean {
-        if (!super.reset(host)) return false;
-        // super.reset() drops the dev TUI's log sink
-        LoggerChannelRegistry.instance.configure({});
-        return true;
+    /**
+     * Answers one request to the interactions endpoint. Mount it in your own server when the
+     * config sets `port: false`.
+     *
+     * Rejects with `CoreFetchBeforeStart` until `start()` is called. A request that arrives while
+     * `start()` runs waits for all of startup, the command deploy included. Answers 503 once
+     * shutdown begins or `start()` fails.
+     *
+     * @example
+     * ```ts
+     * // Hono passes the untouched request through c.req.raw
+     * const seedcord = new Seedcord({ ...config, port: false });
+     * await seedcord.start();
+     *
+     * const app = new Hono();
+     * app.post('/interactions', (c) => seedcord.fetch(c.req.raw));
+     * ```
+     */
+    public fetch(request: Request): Promise<Response> {
+        return this.#endpoint.fetch(request);
     }
 
-    private registerStartupTasks(): void {
-        if (Envapter.isDevelopment || Envapter.isTest) this.registerHmrAwareModules();
+    #registerStartupTasks(): void {
+        const tasks = new HttpStartupTasks(this, this.#service);
+        if (Envapter.isDevelopment || Envapter.isTest) tasks.registerHmr(this.#hmrManager);
 
         this.startup.addTask(StartupPhase.Configuration, 'bus-initialization', async () => {
             busLoggerOf(this.bus).utils.initialization('Subscribers', 'start');
-            await this.subscribers.init();
+            await this.#service.subscribers.init();
             busLoggerOf(this.bus).utils.initialization('Subscribers', 'end');
         });
 
-        const { interactions } = this;
+        const interactions = this.#service.interactions;
         if (interactions) {
             this.startup.addTask(StartupPhase.Configuration, 'interactions-initialization', async () => {
                 interactions.logger.utils.initialization('Interactions', 'start');
@@ -170,108 +157,81 @@ export class Seedcord<Cfg extends HttpConfig = HttpConfig>
         }
 
         this.startup.addTask(StartupPhase.Configuration, 'authenticate', () => {
-            this.authenticate();
+            this.#service.authenticate();
             return Promise.resolve();
         });
 
-        // needs the token from Configuration, and must finish before Ready opens the server to interactions
-        this.startup.addTask(StartupPhase.Login, 'emoji-injection', () => this.emojiInjector.init());
+        // the Login tasks read the token authenticate sets
+        tasks.addDiscordTasks();
 
-        const { commandRegistry } = this;
-        if (commandRegistry) {
-            // one task because tasks in a phase run concurrently and the deploy reads the id
-            this.startup.addTask(StartupPhase.Login, 'command-deploy', async () => {
-                await commandRegistry.init();
-                await commandRegistry.setCommands();
-                interactions?.warnUnhandledRoutes(commandRegistry.routeLeaves());
-                interactions?.warnUnhandledContextMenuRoutes(commandRegistry.contextMenuLeaves());
-            });
-        }
-
-        this.startup.addTask(StartupPhase.Ready, 'http-server', () => this.listen());
+        this.startup.addTask(StartupPhase.Ready, 'http-server', () => {
+            const { port = DEFAULT_PORT } = this.config;
+            return port === false ? Promise.resolve() : this.#listen(port);
+        });
 
         if (!Envapter.isTest) {
-            this.startup.addTask(StartupPhase.Ready, 'identity', () => this.fetchUsername());
+            this.startup.addTask(StartupPhase.Ready, 'identity', () => this.#fetchUsername());
         }
     }
 
-    private registerHmrAwareModules(): void {
-        this.startup.addTask(StartupPhase.Configuration, 'hmr-registration', async () => {
-            if (this.interactions) this.hmrManager.register(this.interactions);
-            if (this.commandRegistry) this.hmrManager.register(this.commandRegistry);
-            this.hmrManager.register(this.subscribers);
-            for (const plugin of this.plugins) {
-                this.hmrManager.register(plugin);
-            }
-            await Promise.resolve();
+    #registerShutdownTasks(): void {
+        this.shutdown.addTask(ShutdownPhase.Unbind, 'close-endpoint', () => {
+            this.#endpoint.close();
+            return Promise.resolve();
         });
-    }
-
-    private authenticate(): void {
-        this.token = validateDiscordToken(Envapter.get('DISCORD_BOT_TOKEN'));
-        this.rest.setToken(this.token);
+        this.shutdown.addTask(
+            ShutdownPhase.Drain,
+            'drain-inflight',
+            () => this.#endpoint.drain(),
+            DRAIN_TASK_TIMEOUT_MS
+        );
     }
 
     /** The bot's Discord application id. Throws if you read it before the Configuration phase. */
     public get applicationId(): string {
-        if (!this.token) throw new SeedcordError(SeedcordErrorCode.CoreApplicationUnavailable);
-        return applicationIdFromToken(this.token);
+        return this.#service.applicationId;
     }
 
-    private async listen(): Promise<void> {
-        const maps = this.interactions?.maps ?? emptyRouteMaps();
-        const middlewares =
-            this.interactions?.middlewares ??
-            new MiddlewareRegistry<InteractionMiddlewareConstructor>(interactionMiddleware);
-        const { handle, inFlight } = buildEngine(this, maps, middlewares);
-
+    async #listen(port: number): Promise<void> {
         const server = createServer((incoming, outgoing) => {
             void (async () => {
-                const response = await handle(await toWebRequest(incoming));
+                const response = await this.#endpoint.answer(await toWebRequest(incoming));
+                // node's close() leaves a busy connection open once it goes idle
+                if (!server.listening) outgoing.setHeader('connection', 'close');
                 await writeWebResponse(response, outgoing);
             })().catch((error: unknown) => {
                 // a swallowed throw would hang the client with no cause
                 outgoing.destroy(Error.isError(error) ? error : new Error(String(error)));
             });
         });
-        this.server = server;
+        this.#server = server;
 
-        server.listen(this.config.port ?? DEFAULT_PORT);
-        await once(server, 'listening');
+        server.listen(port, this[HostListenHost]);
+        try {
+            await once(server, 'listening');
+        } catch (error: unknown) {
+            if (!isPortInUse(error)) throw error;
+            throw new SeedcordError(SeedcordErrorCode.PortInUse, [port, 'port'], { cause: error });
+        }
         // justified: address() is AddressInfo once a TCP server is listening
-        this.boundPort = (server.address() as AddressInfo).port;
-        this.logger.info(`Interactions server listening on port ${paint.sky.bold(String(this.boundPort))}`);
-        getDevChannel()?.send('seedcord:server-listening', { port: this.boundPort });
+        this.#boundPort = (server.address() as AddressInfo).port;
+        this.#logger.info(`Interactions server listening on port ${paint.sky.bold(String(this.#boundPort))}`);
+        getDevChannel()?.send('seedcord:server-listening', { port: this.#boundPort });
 
         this.shutdown.addTask(
             ShutdownPhase.Unbind,
             'stop-http-server',
-            () => this.stopServer(),
+            () => this.#stopServer(),
             SERVER_SHUTDOWN_TIMEOUT_MS
         );
-        // Unbind already ran, so every accepted request is in the in-flight set here
-        this.shutdown.addTask(
-            ShutdownPhase.Drain,
-            'drain-inflight',
-            () => drainInFlight(inFlight, DRAIN_WINDOW_MS, this.logger, 'Interactions'),
-            DRAIN_TASK_TIMEOUT_MS
-        );
     }
 
-    private async fetchUsername(): Promise<void> {
-        try {
-            // justified: the @me payload carries username per the discord api contract
-            const me = (await this.rest.get(Routes.user('@me'))) as { username?: string };
-            this.fetchedUsername = me.username;
-            if (me.username) this.logger.info(`Running as ${paint.sky.bold(me.username)}`);
-        } catch (caught) {
-            // a bad token errors on the first real send anyway
-            this.logger.warn('could not fetch the bot identity', caught);
-        }
+    async #fetchUsername(): Promise<void> {
+        this.#fetchedUsername = await usernameOf(this.rest, this.#logger);
     }
 
-    private stopServer(): Promise<void> {
-        const server = this.server;
+    #stopServer(): Promise<void> {
+        const server = this.#server;
         if (!server?.listening) return Promise.resolve();
 
         return new Promise((resolveClose, rejectClose) => {
@@ -280,11 +240,9 @@ export class Seedcord<Cfg extends HttpConfig = HttpConfig>
                     rejectClose(err);
                     return;
                 }
-                this.logger.info(paint.coral.bold('Interactions server stopped'));
+                this.#logger.info(paint.coral.bold('Interactions server stopped'));
                 resolveClose();
             });
-            // node's close() leaves idle keep-alive sockets open
-            server.closeIdleConnections();
         });
     }
 }

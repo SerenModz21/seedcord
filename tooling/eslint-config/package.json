@@ -1,9 +1,9 @@
 {
     "name": "@seedcord/eslint-config",
     "type": "module",
-    "version": "2.5.0",
+    "version": "2.5.1-next.0",
     "engines": {
-        "node": ">=24.11",
+        "node": "^24.22.1 || >=26.12.1",
         "bun": ">=1.4.2"
     },
     "description": "Shared ESLint config for seedcord projects",
@@ -87,6 +87,7 @@
         "@seedcord/eslint-plugin": "workspace:^",
         "@types/eslint-plugin-security": "catalog:eslint",
         "@typescript-eslint/parser": "catalog:eslint",
+        "es-toolkit": "catalog:deps",
         "eslint-config-prettier": "catalog:eslint",
         "eslint-import-resolver-typescript": "catalog:eslint",
         "eslint-plugin-discordjs": "workspace:^",
@@ -94,7 +95,6 @@
         "eslint-plugin-security": "catalog:eslint",
         "eslint-plugin-tsdoc": "catalog:eslint",
         "eslint-plugin-unicorn": "catalog:eslint",
-        "lodash.merge": "catalog:deps",
         "prettier": "catalog:deps",
         "typescript-eslint": "catalog:eslint"
     },

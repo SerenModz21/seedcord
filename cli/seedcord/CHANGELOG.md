@@ -1,5 +1,103 @@
 # seedcord
 
+## 0.22.0-next.1
+
+### ✨ Minor
+
+- `seedcord dev` now reads `{"do":"restart"}`, `{"do":"disconnect"}`, and `{"do":"quit"}` lines from stdin when it runs without a terminal. ([#418](https://github.com/seedcord/seedcord/pull/418))
+
+### 🩹 Patch
+
+#### 📦 Seedcord packages
+
+- `@seedcord/utils` 0.9.0-next.0 → 0.9.0-next.1
+- `@seedcord/logger` 0.5.0-next.0 → 0.5.0-next.1
+
+## 0.22.0-next.0
+
+### 💥 Breaking
+
+- `seedcord build` now bundles the bot with Vite and empties `outDir` before it writes. It throws `CliBuildOutDirNotEmpty` when `outDir` holds anything other than an earlier `seedcord build`, like the `dist` an older version wrote. Delete that folder once after you upgrade. ([#359](https://github.com/seedcord/seedcord/pull/359))
+- `seedcord build` now runs your `instance` file. Set the env that file reads at construction in CI too, because a build without it now fails. ([#359](https://github.com/seedcord/seedcord/pull/359))
+- `seedcord build` now type checks with the `tsconfig.json` beside your config and no longer picks up `tsconfig.build.json`. Set `build.tsconfig` to keep using it. ([#359](https://github.com/seedcord/seedcord/pull/359))
+- `entry` in `seedcord.config.ts` is now `build.start`, like `build: { start: './index.ts' }`, and `build.bootstrap` is gone (#359). The built entry is always `index.mjs` in `outDir`, and without `build.start` it default exports the bot, typed by `index.d.mts`, for your own node app to import and start. An http bot run this way should set `port: false` and pass each request from your app to `bot.fetch()`. ([#407](https://github.com/seedcord/seedcord/pull/407))
+- `seedcord dev`, `codegen` and `commands` now throw `CliConfigOutDirDeletesRoot` for an `outDir` that holds `root`, the same as `seedcord build`. ([#410](https://github.com/seedcord/seedcord/pull/410))
+- The CLI now runs every bot in the Vite mode from `ENVIRONMENT`, `ENV`, `NODE_ENV` or `MODE` in your shell, so `ENV=staging pnpm build` reads `.env.staging`. With none set, `build` runs in `production` and the other commands in `development`. Any other name, like `NODE_ENV=prod`, now throws `ConfigInvalidEnv`. ([#399](https://github.com/seedcord/seedcord/pull/399))
+- `seedcord build` and `codegen` now load the config and the bot through Vite, and `seedcord dev` now loads its config that way too. A `.tsx` command file now compiles with the `jsx` setting in your tsconfig. A `#` in any file or folder path in the project, like `~/code/C#/bot` or `handlers/a#b.ts`, now stops the CLI with `CliPathHasHash`, because Vite cuts a path at its first `#`. ([#365](https://github.com/seedcord/seedcord/pull/365))
+- A `seedcord` command now throws `CliNotProjectInstall` when it runs from an install other than the project's own, like a global `seedcord dev`, and `CliDependencyMissing` when the project has no `seedcord`. Run it through a script in your `package.json` instead. A global `seedcord dev` used to print the bot's logs raw under the TUI, since the bot and the CLI loaded separate copies of seedcord. ([#405](https://github.com/seedcord/seedcord/pull/405))
+- `SeedcordDevConfig` is now `SeedcordServerConfig`, the type of `seedcord.config.ts` for a bot that runs on node or bun. Change any import of `SeedcordDevConfig` to the new name. ([#374](https://github.com/seedcord/seedcord/pull/374))
+- `vite` is now a peer dependency of `seedcord`. Run `pnpm add -D vite` if your package manager does not install peers for you. ([#402](https://github.com/seedcord/seedcord/pull/402))
+- `seedcord commands --clean` is now `seedcord commands clean`, with `--guilds` for `--guild` and `--yes` for `--apply`, and `--purge` moved to `seedcord commands purge`. With flags, `clean` lists what it would delete until you pass `--yes`, however many guilds the bot is in. With no flags in a terminal it opens a wizard, and a bare `seedcord commands` asks whether to deploy, list, clean or purge. ([#396](https://github.com/seedcord/seedcord/pull/396))
+- `seedcord commands clean` now throws `CoreDiscordReadFailed` on a guild it can't read, before it deletes anything. It used to skip that guild with a warning and clean the rest. ([#396](https://github.com/seedcord/seedcord/pull/396))
+- The command scan in `seedcord codegen`, `dev`, `build` and `commands` now throws `CorePathUnreadable` on any folder under your commands path it can't read. It used to skip a subfolder with a warning. A class with `@RegisterCommand` whose component is not a command now throws the new `CliCommandNotACommand`. ([#396](https://github.com/seedcord/seedcord/pull/396))
+- A relative folder path in the bot config, a plugin's `dir`, Kysely's migrations folder, and a folder passed to `importFiles` now resolve against `root` from `seedcord.config.ts`. With `root: './src'`, write `interactions: { path: './handlers' }` where you wrote `'./src/handlers'`. Outside `seedcord dev` and the built output, like in a test or a `tsx` run, a relative path now throws `CoreDirectoryRootUnknown` while an absolute path like `resolve(import.meta.dirname, './handlers')` works as before. ([#382](https://github.com/seedcord/seedcord/pull/382))
+- seedcord now needs envapt 9.1. Run `pnpm add envapt@^9.1`, then update your own envapt reads with the [v8 to v9 migration guide](https://envapt.materwelon.dev/docs/migration-v8-to-v9/). ([`99e7d64`](https://github.com/seedcord/seedcord/commit/99e7d6400b19af6db55548fd02c41ac1eb9b1737))
+- A mistake in your own code or command line now throws `SeedcordTypeError`, like two handlers on one route or a bad CLI flag. A zero `Cooldown` and other numbers out of range get `SeedcordRangeError`. An env var with a bad value is reported as a plain `SeedcordError`. ([#397](https://github.com/seedcord/seedcord/pull/397))
+- Error codes that cover the same failure are now merged, like the five match-arm codes into `MatchArmMissing`, and the codes of removed features, like `CliBootstrapWriteFailed`, are gone. Many of the rest have a new number, and some old numbers now belong to a different code. Match on the `SeedcordErrorCode` member and never on the raw number. ([#397](https://github.com/seedcord/seedcord/pull/397))
+- `importFiles`, and with it every handler, command, subscriber, service and migration folder, now loads `.tsx`, `.mts`, `.jsx` and `.mjs` files as well as `.ts` and `.js`. A stray `.mjs` file left in a handler folder starts loading too. `seedcord build` writes each one as a `.js` file and throws `CoreDuplicateName` for two files that would build to the same one, like `Roll.ts` and `Roll.tsx`. ([#410](https://github.com/seedcord/seedcord/pull/410))
+- Under `seedcord dev` and in a built bot, `importFiles` now throws `CorePathOutsideRoot` for a folder outside `root`. `importFiles` and `readFiles` throw `CoreDirectorySkipped` for a folder that `seedcord build` leaves out of the bot, like `./locales/.cache`, and `seedcord codegen`, `build` and `commands` run the same checks on the folders in your config. ([#410](https://github.com/seedcord/seedcord/pull/410))
+- `importFiles` now skips dotfiles, dot-folders, `node_modules`, `outDir` and the logs folder, the same way a built bot does. That covers handler, command and service folders, the command scan in `seedcord codegen` and `commands`, and hot reload in `seedcord dev`. Move a handler out of a folder like `.drafts/` to keep it loading. ([#359](https://github.com/seedcord/seedcord/pull/359))
+
+### ✨ Minor
+
+- `seedcord build` and `codegen` now print one line per step with its time, and `build` ends with what it bundled and the commands to run the bot. Pass `--verbose` to any `seedcord` command to see the resolved config and the stack trace of a seedcord error. ([#361](https://github.com/seedcord/seedcord/pull/361))
+- `seedcord build` now bundles an edge bot into `.cloudflare/output` for `cf deploy --prebuilt`, with the public key and command ids it reads from Discord written in. It then starts the worker once in workerd and stops with workerd's error when the worker fails to load. Every command in your code has to be deployed first, and an edge bot's config can't set `build.outDir` or `build.start`. ([#374](https://github.com/seedcord/seedcord/pull/374))
+- `seedcord dev` now runs an edge bot in workerd on `port` from `seedcord.config.ts`, 3000 by default. A saved handler reloads in place, and a changed `cloudflare.config.ts`, `.dev.vars` or `.env` file asks for a restart with `r`. ([#391](https://github.com/seedcord/seedcord/pull/391))
+- A `cloudflare.config.ts` beside `seedcord.config.ts` now makes the bot an edge bot. It needs `cf` and `@cloudflare/vite-plugin` installed, Node compat on, and `"customConditions": ["workerd"]` in its tsconfig, and the CLI loads it under Cloudflare's `workerd` conditions with `env` from `cloudflare:workers` filled from your local env files. A stray `cloudflare.config.ts` or `workerd` condition in a node bot stops the CLI with an error that points at it. ([#365](https://github.com/seedcord/seedcord/pull/365))
+- A built bot now reads its `.env` files from the folder that holds `seedcord.config.ts`, whichever folder you start it from. A bun binary, or a build copied away from its `seedcord.config.ts`, reads them from the folder you start it in. `bot.ts` no longer needs `Envapter.baseDir = resolve(import.meta.dirname, '..')`, though a `baseDir` you set there still wins. ([#403](https://github.com/seedcord/seedcord/pull/403))
+- Added `files` to `seedcord.config.ts`, like `files: ['./locales']` or `files: ['../assets']` beside `root`, for the folders a built bot reads through `readFiles`. `seedcord build` bundles non-code files from only those folders, binary files included, and `readFiles` throws `CoreDirectoryNotListed` for a folder `files` leaves out. A listed folder that is missing, is a file, or sits outside the folder that holds `seedcord.config.ts` throws `CliListedFolderUnusable`. ([#410](https://github.com/seedcord/seedcord/pull/410))
+- Added `vitePlugins` to `seedcord.config.ts`. `seedcord dev`, `build`, `codegen` and `commands` run the Vite plugins it returns on your bot's code, like `vitePlugins: () => [yaml()]` with `@rollup/plugin-yaml` for a command that imports a `.yaml` file. A plugin that throws stops the CLI with `CoreVitePluginThrew`, and one that rewrites Vite's `seedcord` environment away throws `CliViteEnvironmentMissing` (#406). ([#402](https://github.com/seedcord/seedcord/pull/402))
+- `seedcord codegen --check` now throws `CliCodegenOutOfDate` when `seedcord-gen.d.ts` is stale, naming the file and the command that rewrites it. ([#361](https://github.com/seedcord/seedcord/pull/361))
+- Fixed `seedcord commands clean` exiting with code 0 when some of its deletes failed. It now warns about each one, then throws the new `CliCommandsNotDeleted`. ([#396](https://github.com/seedcord/seedcord/pull/396))
+- `seedcord commands clean` now prints each guild on its own line with its commands wrapped under it, and tags a context menu command with its kind, like `Report User (user)`. With flags it prints one line per step, and a failure shows as its code and message. `--verbose` adds each command's id. ([#396](https://github.com/seedcord/seedcord/pull/396))
+- Added `seedcord commands deploy` to replace the commands in each scope your code targets, after it shows what each one gains and loses. It asks first, or needs `--yes` outside a terminal, and it skips a scope whose commands match the last deploy and whose names match Discord's unless you pass `--force`. An edge bot that gained a command needs `seedcord build` again to pick up its id. ([#396](https://github.com/seedcord/seedcord/pull/396))
+- Added `seedcord commands list` to print the commands Discord has globally and in every guild your code deploys to, plus any guild you pass with `--guilds` or every guild the bot is in with `--all-guilds`. `--verbose` adds each command's id, and `--json` prints Discord's command objects as JSON for scripts. ([#396](https://github.com/seedcord/seedcord/pull/396))
+- Added `seedcord commands purge` to delete every command globally with `--global`, in the guilds you pass with `--guilds`, or in every guild the bot is in with `--all-guilds`. It lists what it would delete until you pass `--yes`. With no flags in a terminal, it opens a wizard. ([#396](https://github.com/seedcord/seedcord/pull/396))
+- The `seedcord commands` wizard now prints one line per step, the same as `seedcord build`, and each answered prompt clears itself. The guild picker searches as you type and finds a guild from its initials or with a typo. Tab now picks a row, since space goes into the search. ([#394](https://github.com/seedcord/seedcord/pull/394))
+- When `seedcord.config.ts` has two or more missing or invalid fields, the CLI now lists all of them in one `CliProblems` error, like a config with no `instance` and a `tunnel` of `'yes'`. `seedcord codegen` does the same for command files whose constructors throw, like `ban.ts` and `roll.ts` in one run. ([#361](https://github.com/seedcord/seedcord/pull/361))
+- `seedcord dev` now updates `seedcord-gen.d.ts` each time the bot starts. Before, commands you edited while dev was stopped kept stale types until you ran `seedcord codegen`. ([#387](https://github.com/seedcord/seedcord/pull/387))
+- In a terminal too short or too narrow to show the filter chips, you can now press `f` in `seedcord dev` to open them. ([#386](https://github.com/seedcord/seedcord/pull/386))
+- `seedcord dev` now saves your channel and level filters to `.seedcord/dev-prefs.json` in the project folder and reads them back on the next run. ([#386](https://github.com/seedcord/seedcord/pull/386))
+- `r`, `d` and `c` in `seedcord dev` now work while the bot starts, like during a command deploy that waits on Discord's rate limit. ([#389](https://github.com/seedcord/seedcord/pull/389))
+- `seedcord dev` now throws `CliDevAlreadyRunning` when another dev session runs a bot on the same Discord application, like two bot folders that read the same token. Two sessions on one application used to overwrite each other's commands and interactions endpoint. ([#411](https://github.com/seedcord/seedcord/pull/411))
+- In a narrow terminal, `seedcord dev` now shows a slimmer rail, or a two-row status above the logs. Press `s` to hide the rail, and the setting carries over to the next run. ([#412](https://github.com/seedcord/seedcord/pull/412))
+- In a narrow terminal, `seedcord dev` now removes the seconds, then the label, then the clock from each log line to give the message room. Press `p` to switch them between fitting the width, full, and hidden, and the setting carries over to the next run. ([#412](https://github.com/seedcord/seedcord/pull/412))
+- The `seedcord dev` sidebar now shows whether the bot runs on the edge or a server, beside the transport version. ([#391](https://github.com/seedcord/seedcord/pull/391))
+- `seedcord dev` now skips deploying the global commands, or one guild's commands, when they haven't changed since the last deploy and Discord has commands with the same names. It reads their ids from Discord, and stores the last deploy in `.seedcord/deployed-commands.json`. ([#398](https://github.com/seedcord/seedcord/pull/398))
+
+### 🩹 Patch
+
+- Fixed `seedcord commands` and the `seedcord dev` tunnel reaching Discord without your bot's REST options. They now build their client from the same options as the bot, like an `api` URL set in `bot.restOptions`. ([#416](https://github.com/seedcord/seedcord/pull/416))
+- `seedcord dev` now asks for a restart when a lockfile or any `tsconfig*.json` beside `seedcord.config.ts` is saved. A `package.json` deeper in the project now hot reloads like any other file. ([#410](https://github.com/seedcord/seedcord/pull/410))
+- Fixed `seedcord dev` ignoring a saved `.env`, `package.json` or `tsconfig.json` beside `seedcord.config.ts` on a server bot whose `root` is a subfolder like `./src`. It now asks for a restart for those, and for a saved `.env.local` or `.env.development` beside the config on any server bot. ([#402](https://github.com/seedcord/seedcord/pull/402))
+- Fixed `seedcord dev` ignoring saves to a source folder named `dist`, like `src/handlers/dist/`. The watcher now ignores your real `outDir`. ([#410](https://github.com/seedcord/seedcord/pull/410))
+- Fixed `seedcord dev`, `build`, `codegen` and `commands` waiting forever when your bot has a top-level await that never settles. They now stop with `CoreImportFailed` once a file has been loading for 30s. ([#399](https://github.com/seedcord/seedcord/pull/399))
+- Fixed `import.meta.env.VITE_*` reading as `undefined` under `seedcord dev` on a bot whose `root` is a subfolder like `./src`. It now loads the `.env` files beside `seedcord.config.ts` and ignores any in `root`. ([#402](https://github.com/seedcord/seedcord/pull/402))
+- Fixed `console` output from your bot and its libraries never showing in `seedcord dev`. It now appears in the log list and the log file under the `Console` label. ([#391](https://github.com/seedcord/seedcord/pull/391))
+- Fixed Ctrl-D in `seedcord dev` disconnecting the bot on the first press. It now asks first, like Ctrl-C. ([#412](https://github.com/seedcord/seedcord/pull/412))
+- Fixed `seedcord dev` leaving the interactions endpoint on the old application when you change the bot token. A restart now sets the tunnel's URL on the new token's application if it has changed. ([`e03cf1a`](https://github.com/seedcord/seedcord/commit/e03cf1aee8046606d1efa1783c3f18dd2c62a752))
+- Fixed `q`, scrolling, and the filter keys doing nothing in `seedcord dev` while the refresh prompt waits for `y` or `n`. ([#412](https://github.com/seedcord/seedcord/pull/412))
+- Fixed `seedcord dev` hot-reloading a plugin or any other file your bot file imports. It now asks you to restart, the same as when you save the bot file. ([#391](https://github.com/seedcord/seedcord/pull/391))
+- Fixed the `seedcord dev` error card leaving out why the bot failed to start. It now lists the error from each startup task that failed. ([#391](https://github.com/seedcord/seedcord/pull/391))
+- Fixed `seedcord dev` sending an http bot's tunnel traffic to another program on the same port. With the default quick tunnel, the bot now listens on `127.0.0.1` only. ([#391](https://github.com/seedcord/seedcord/pull/391))
+- Fixed `seedcord dev` keeping a tunnel that never came up when you restarted on the same port. Pressing `r` now opens a fresh tunnel until one goes live. ([#391](https://github.com/seedcord/seedcord/pull/391))
+- Fixed the `seedcord dev` uptime counter starting over at 0s when you resize a short terminal back up to show the sidebar. ([#386](https://github.com/seedcord/seedcord/pull/386))
+- Fixed `seedcord dev` crashing with "Raw mode is not supported" when stdin isn't a terminal. Without a terminal, or with `CI` set to any value, it now prints plain log lines and answers its own prompts. ([`6b6f9d7`](https://github.com/seedcord/seedcord/commit/6b6f9d789da1f62c6afdcfc580cd5c5c954f431d))
+- Fixed a wrapped stack frame in `seedcord dev` starting its second row at the left edge. ([#412](https://github.com/seedcord/seedcord/pull/412))
+- Fixed `seedcord dev` skipping the restart prompt for an `hmr.restart` or plugin pattern written as `./config/**` or as an absolute path. Saving a matching file used to hot-reload it while the bot kept running on what it read from that file at startup. ([#383](https://github.com/seedcord/seedcord/pull/383))
+- Fixed `seedcord codegen`, `seedcord build`, and `seedcord commands` each writing a log file under `logs/` in development. A bot now applies its `logger` config, along with the default log file, when `start()` runs. ([`b3d661a`](https://github.com/seedcord/seedcord/commit/b3d661a9ff02ab15c3b40aaea5dd786c79d9bc9c))
+- Fixed `seedcord build` and the `seedcord dev` type check reporting TypeScript as missing in a project on TypeScript 7. ([#361](https://github.com/seedcord/seedcord/pull/361))
+- Fixed `seedcord dev` on Windows never asking for a restart after you saved `bot.ts`. ([#401](https://github.com/seedcord/seedcord/pull/401))
+
+#### 📦 Seedcord packages
+
+- `@seedcord/core` 0.10.0 → 0.11.0-next.0
+- `@seedcord/errors` 0.13.0 → 0.14.0-next.0
+- `@seedcord/logger` 0.4.4 → 0.5.0-next.0
+- `@seedcord/utils` 0.8.17 → 0.9.0-next.0
+- `@seedcord/types` 0.14.4 → 0.15.0-next.0
+- `@seedcord/event-emitter` 0.1.8 → 0.1.9-next.0
+
 ## 0.21.5
 
 ### 🩹 Patch

@@ -1,5 +1,6 @@
 import { execFile } from 'node:child_process';
 import path from 'node:path';
+import { pathToFileURL } from 'node:url';
 import { promisify } from 'node:util';
 
 import { describe, expect, it } from 'vitest';
@@ -15,7 +16,7 @@ async function runBinOn(versions: { node: string; bun?: string }): Promise<{ cod
                 `Object.defineProperty(process.versions, ${JSON.stringify(key)}, { value: ${JSON.stringify(value)}, configurable: true });`
         ),
         `process.argv = [process.argv[0], 'seedcord', '--version'];`,
-        `await import(${JSON.stringify(BIN)});`
+        `await import(${JSON.stringify(pathToFileURL(BIN).href)});`
     ].join('\n');
 
     return run(process.execPath, ['--input-type=module', '-e', script]).then(
@@ -25,15 +26,15 @@ async function runBinOn(versions: { node: string; bun?: string }): Promise<{ cod
 }
 
 describe('the seedcord bin', () => {
-    it('exits with the required range when node is too old', async () => {
-        const { code, stderr } = await runBinOn({ node: '22.18.0' });
+    it.each(['22.18.0', '24.22.0', '25.0.0', '26.12.0'])('rejects unsupported Node %s', async (node) => {
+        const { code, stderr } = await runBinOn({ node });
 
         expect(code).toBe(1);
-        expect(stderr).toContain('seedcord requires Node >=24.11 but this process runs 22.18.0.');
+        expect(stderr).toContain(`seedcord requires Node ^24.22.1 || >=26.12.1 but this process runs ${node}.`);
     });
 
-    it('runs the cli when node meets the range', async () => {
-        const { code, stderr } = await runBinOn({ node: '99.0.0' });
+    it.each(['24.22.1', '26.12.1', '27.0.0'])('runs the cli on supported Node %s', async (node) => {
+        const { code, stderr } = await runBinOn({ node });
 
         expect(stderr).toBe('');
         expect(code).toBe(0);
