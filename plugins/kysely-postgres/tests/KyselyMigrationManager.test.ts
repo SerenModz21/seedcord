@@ -1,6 +1,7 @@
 import { SeedcordErrorCode } from '@seedcord/errors';
-import { setBotRoot } from '@seedcord/utils/node/internal';
-import { afterEach, beforeEach, describe, expect, it, type Mock } from 'vite-plus/test';
+import { Logger } from '@seedcord/logger';
+import { setDevFiles } from '@seedcord/utils/internal';
+import { afterEach, beforeEach, describe, expect, it, vi, type Mock } from 'vite-plus/test';
 
 import { KyselyPostgres } from '#src/KyselyPostgres';
 
@@ -14,6 +15,15 @@ const { poolQuery } = (await import('pg')) as unknown as { poolQuery: Mock };
 
 const NAMED_EXPORTS = 'export async function up() {}\nexport async function down() {}\n';
 
+// one shared timestamp leaves kysely to order the rows by name
+function seedRanMigrations(names: string[]): void {
+    const ranAt = new Date('2026-01-01T00:00:00Z').toISOString();
+    const rows = names.map((name) => ({ name, timestamp: ranAt }));
+    poolQuery.mockImplementation((sql: unknown) =>
+        Promise.resolve({ rows: String(sql).startsWith('select "name", "timestamp"') ? rows : [] })
+    );
+}
+
 describe('KyselyMigrationManager', () => {
     let testEnv: TestEnvironment;
 
@@ -21,12 +31,16 @@ describe('KyselyMigrationManager', () => {
         testEnv = new TestEnvironment('kysely-migrations-test-');
         await testEnv.setup();
         await testEnv.createFile('services/.keep', '');
-        setBotRoot(testEnv.rootDir);
+        const dev = setDevFiles({
+            root: testEnv.rootDir,
+            listed: [],
+            skippedFolders: []
+        });
+        return () => dev[Symbol.dispose]();
     });
 
     afterEach(async () => {
         poolQuery.mockResolvedValue({ rows: [] });
-        setBotRoot(undefined);
         await testEnv.teardown();
     });
 
@@ -100,21 +114,27 @@ describe('KyselyMigrationManager', () => {
     it('passes nameComparator to kysely for two migrations that ran at the same time', async () => {
         await testEnv.createFile('migrations/B.ts', NAMED_EXPORTS);
         await testEnv.createFile('migrations/a.ts', NAMED_EXPORTS);
-        const ranAt = new Date('2026-01-01T00:00:00Z').toISOString();
-        poolQuery.mockImplementation((sql: unknown) =>
-            Promise.resolve({
-                rows: String(sql).startsWith('select "name", "timestamp"')
-                    ? [
-                          { name: 'B', timestamp: ranAt },
-                          { name: 'a', timestamp: ranAt }
-                      ]
-                    : []
-            })
-        );
+        seedRanMigrations(['B', 'a']);
 
         const byCodeUnit = (nameA: string, nameB: string): number => (nameA < nameB ? -1 : Number(nameA > nameB));
         const plugin = await initializedPlugin({ dir: './migrations', onStartup: false, nameComparator: byCodeUnit });
 
         await expect(plugin.migrate()).resolves.toBeUndefined();
+    });
+
+    it('stops migrateDown at the newest migration when it has no down', async () => {
+        await testEnv.createFile('migrations/001-users.ts', NAMED_EXPORTS);
+        await testEnv.createFile('migrations/002-guilds.ts', 'export async function up() {}\n');
+        seedRanMigrations(['001-users', '002-guilds']);
+        const plugin = await initializedPlugin({ dir: './migrations', onStartup: false });
+        const info = vi.spyOn(Logger.prototype, 'info');
+
+        try {
+            await plugin.migrateDown({ steps: 3 });
+            const skipped = info.mock.calls.map(([line]) => String(line)).filter((line) => line.includes('(skipped)'));
+            expect(skipped).toEqual([expect.stringContaining('002-guilds')]);
+        } finally {
+            info.mockRestore();
+        }
     });
 });

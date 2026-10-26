@@ -2,12 +2,6 @@ import path from 'node:path';
 
 import createConfig from '@seedcord/eslint-config';
 import nextVitals from 'eslint-config-next/core-web-vitals';
-import reactCompiler from 'eslint-plugin-react-compiler';
-
-import type { Linter } from 'eslint';
-
-// justified: exactOptionalPropertyTypes rejects this plugin's RuleModule type
-const reactCompilerConfig = reactCompiler.configs.recommended as Linter.Config;
 
 export default createConfig({
     tsconfigRootDir: import.meta.dirname,
@@ -19,8 +13,6 @@ export default createConfig({
     tailwindEntryPoint: path.resolve(import.meta.dirname, 'src/app/globals.css'),
     userConfigs: [
         ...nextVitals,
-
-        reactCompilerConfig,
 
         // react-doctor already covers the jsx-a11y strict set
         {
@@ -53,6 +45,6 @@ export default createConfig({
             rules: { 'import/no-default-export': 'off' }
         },
 
-        { ignores: ['.next/**', 'dist/**', 'build/**', 'next-env.d.ts'] }
+        { ignores: ['.next/**', '.source/**', 'dist/**', 'build/**', 'next-env.d.ts'] }
     ]
 });

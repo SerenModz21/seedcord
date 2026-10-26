@@ -1,6 +1,6 @@
 {
     "name": "@seedcord/utils",
-    "version": "0.8.17",
+    "version": "0.9.0",
     "description": "Type helpers and small functions used across seedcord",
     "keywords": [
         "discord-bot",
@@ -42,18 +42,6 @@
                 "types": "./dist/internal.index.d.mts",
                 "default": "./dist/internal.index.mjs"
             }
-        },
-        "./node": {
-            "import": {
-                "types": "./dist/node.d.mts",
-                "default": "./dist/node.mjs"
-            }
-        },
-        "./node/internal": {
-            "import": {
-                "types": "./dist/node-internal.index.d.mts",
-                "default": "./dist/node-internal.index.mjs"
-            }
         }
     },
     "publishConfig": {
@@ -91,6 +79,6 @@
     },
     "engines": {
         "bun": ">=1.4.2",
-        "node": ">=24.11"
+        "node": "^24.22.1 || >=26.12.1"
     }
 }

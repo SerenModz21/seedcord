@@ -1,4 +1,5 @@
-import { DocKind } from '#model/kinds';
+import { DocKind } from '@seedcord/docs-search';
+
 import { isEntityTone, type EntityTone } from '#src/tones';
 
 import type { DocNode } from '#src/types';

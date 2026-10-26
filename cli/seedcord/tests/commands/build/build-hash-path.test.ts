@@ -5,7 +5,7 @@ import { describe, expect, it } from 'vite-plus/test';
 
 import { BuildRunner } from '#commands/build/BuildRunner';
 import { quietSteps } from '#core/output/quietSteps';
-import { ShellMode } from '#core/viteMode';
+import { ShellMode } from '#src/core/ShellMode';
 
 const HASH_BOT = join(import.meta.dirname, '../../fixtures/hash#bot');
 

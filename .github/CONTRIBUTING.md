@@ -1,10 +1,10 @@
 # Contributing to seedcord
 
-Any help is appreciated, whether that's a bug fix, a feature, or better docs.
+Thanks for wanting to help! Bug fixes, features and better docs are all welcome.
 
-seedcord is pre-1.0 and I break things between minors. Open an issue before starting anything large and wait for my reply. Large unsolicited pull requests may be closed without a detailed review, because I cannot keep up with them otherwise. Check whether an issue or PR already covers your idea first.
+seedcord is pre-1.0 and I break things between minors. Open an issue before starting anything large and wait for my reply. I can't keep up with large PRs nobody asked for, so those may get closed without a detailed review. Check whether an issue or PR already covers your idea first.
 
-Everyone here follows the [code of conduct](CODE_OF_CONDUCT.md). Report a security problem the way [SECURITY.md](SECURITY.md) describes.
+Everyone here follows the [code of conduct](CODE_OF_CONDUCT.md). Report a security problem the way [SECURITY.md](SECURITY.md) describes. If you're using AI, read the [AI policy](../AI_POLICY.md) too.
 
 ## Setup
 
@@ -100,6 +100,10 @@ vp exec turbo build --filter=@seedcord/<site>...
 
 A guide build uses about 6 GB of memory. With 8 GB or less, build one site at a time.
 
+### Writing a blog post
+
+Each post is a folder in `apps/home/content/blog`. The [README](../apps/home/content/blog/README.md) there has the steps for writing one.
+
 ## Trying a change in a real bot
 
 `mocks/gateway` and `mocks/http` are working bots, one per transport. Copy a mock's `.env.example` to `.env` and fill it in. The example file lists every variable that mock reads. The [guide](https://seedcord.org/guide/discord-application) shows how to create an application and get its token.
@@ -109,6 +113,8 @@ vp -C mocks/gateway run dev
 ```
 
 Check a mock's `src/bot.ts` for what else it connects to. The gateway mock attaches a database plugin, so it needs that database running. The http mock needs a public URL for Discord to post to, and `seedcord dev` opens one through [cloudflared](https://seedcord.org/guide/tooling/tunnel).
+
+Try every change a bot author would notice in a mock, and use it like they would. Unit tests miss things you only catch by using the bot, like a confusing error message or a button that does nothing after a restart.
 
 When you add or change a handler in a mock, run `vp -C mocks/<name> run codegen`. The gate fails on a stale generated file.
 
@@ -133,7 +139,9 @@ Run `vp run prePush` before you open the PR. It checks the packages your branch 
     feat!: move errors out of core
     ```
 
-3. **Add a changeset** with `vp run cs` for any change to a published package. Read [`skills/changeset-guidelines`](../.agents/skills/changeset-guidelines/SKILL.md) before you write it. A breaking change is a minor bump while seedcord is pre-1.0. `vp run lint:changesets` checks the format, and CI runs it.
+3. **Add a changeset** with `vp run cs` when you change a published package in a way that someone on the latest release will notice. Skip it when you fix code that isn't on `main` yet. Read [`skills/changeset-guidelines`](../.agents/skills/changeset-guidelines/SKILL.md) before you write it. A breaking change is a minor bump while seedcord is pre-1.0. `vp run lint:changesets` checks the format, and CI runs it.
+
+    To see your changeset as the GitHub release post, commit it and run `pnpm release:preview`. It writes the post for the stable release on `main` to `release.md` in the repo root, and `--pre` writes the one for the next prerelease. It versions a temporary copy of `HEAD`, so it doesn't mess with your checkout.
 
 4. **Write the failing test first.** Watch it fail, then fix the code. A regression test that passes before your change proves nothing. Tests live in `<package>/tests/`, mirroring `src/`, and `vp -C <package> run test:watch` reruns them as you work.
 
@@ -143,21 +151,17 @@ Run `vp run prePush` before you open the PR. It checks the packages your branch 
 
 The lint config is strict. `lint:fix` fixes what it can and reports the rest.
 
-- **No `any`.** Use `unknown` and narrow it with a type guard. `as unknown as T` is out too. If you cannot get the types to work, open an issue and we'll talk through the design.
+- **No `any`.** Use `unknown` and narrow it with a type guard. `as unknown as T` is out too. If you can't get the types to work, open an issue and we'll talk through the design.
 - **Throw through `@seedcord/errors`** with a registered code. A raw `throw new Error(...)` that reaches a consumer is a bug.
 - **Comment only where the reason sits outside the file.** A comment restating the line below it gets cut in review.
 
 [`AGENTS.md`](../AGENTS.md) at the repo root has the full rules. `packages/` and `apps/` each add their own `AGENTS.md` on top of it.
 
-## AI-generated code
+## Using AI
 
-AI tools are fine. I use them too. The bar is the same as any other code. You have to understand what you are submitting and review it properly before it goes up. Do not send a PR with code you could not explain or debug yourself, and if I ask why something is the way it is, "the AI wrote it" is not an answer.
+The rules for AI-assisted contributions are in the [AI policy](../AI_POLICY.md). This section is about setting your agent up.
 
-Same for anything you write in the repo. Issues, PR descriptions, and review replies should come from you, the person who read the change. I want to talk it through with the human doing the work.
-
-AI code often looks correct and misses edge cases, so the testing rules matter more here. Point your agent at `AGENTS.md`.
-
-Have it load these four skills from [`.agents/skills`](../.agents/skills) before any work:
+Point your agent at `AGENTS.md`, and have it load these four skills from [`.agents/skills`](../.agents/skills) before any work:
 
 - [`code-quality`](../.agents/skills/code-quality/SKILL.md), plus every file in its folder
 - [`code-commenting-guidelines`](../.agents/skills/code-commenting-guidelines/SKILL.md)
@@ -170,13 +174,14 @@ Have it load the others only for these tasks:
 - [`changeset-guidelines`](../.agents/skills/changeset-guidelines/SKILL.md) before writing a changeset
 - [`envapt`](../.agents/skills/envapt/SKILL.md) when code reads config through `envapt`
 - [`release-version`](../.agents/skills/release-version/SKILL.md) for prepping a release, a maintainer-only job
+- [`release-docs`](../.agents/skills/release-docs/SKILL.md) for bringing the changesets, READMEs, home page and guide up to date before a release, a maintainer-only job
 - [`test-performance`](../.agents/skills/test-performance/SKILL.md) when writing a test, a test helper, or a vitest config, or when a test is slow or fails only in the full suite
 
 Before you open a PR, run [`/branch-audit`](../.claude/commands/branch-audit.md) or have your agent run it. It reviews everything your branch changes against `next`. Fix what it finds before you push.
 
 ## CI
 
-[`checks.yml`](workflows/checks.yml) runs on every PR, drafts included, and [`commitlint.yml`](workflows/commitlint.yml) checks every commit in it. CI runs the checks from `vp run prePush:all` on every package. A PR that fails CI will not get a detailed review.
+[`checks.yml`](workflows/checks.yml) runs on every PR, drafts included, and [`commitlint.yml`](workflows/commitlint.yml) checks every commit in it. CI runs the checks from `vp run prePush:all` on every package. A PR that fails CI won't get a detailed review.
 
 ## Questions
 

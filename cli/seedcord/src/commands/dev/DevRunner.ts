@@ -5,7 +5,8 @@ import { cliLogger } from '#core/cliLogger';
 import { ProjectLoader } from '#core/config/ProjectLoader';
 import { openModuleLoader } from '#core/modules/openModuleLoader';
 import { quietSteps } from '#core/output/quietSteps';
-import { startupShell } from '#core/viteMode';
+import { DevLock } from '#core/state/DevLock';
+import { startupShell } from '#src/core/ShellMode';
 import { resetChannelColors } from '#ui/channelColor.ts';
 import { profileMark } from '#ui/profile.ts';
 
@@ -21,10 +22,11 @@ import type { DevStore } from '#ui/stores/DevStore.ts';
 import type { DevSessionDeps } from './DevSession';
 import type { DevRuntime } from './runtime/DevRuntime';
 import type { TunnelCoordinator } from './tunnel/TunnelCoordinator';
+import type { TypedOmit } from '@seedcord/types';
 
 const TUNNEL_TEARDOWN_MS = 3000;
 
-export interface DevRunnerDeps extends Omit<DevSessionDeps, 'onEvent'> {
+export interface DevRunnerDeps extends TypedOmit<DevSessionDeps, 'onListening'> {
     readonly projectLoader: Pick<ProjectLoader, 'readConfig'>;
     readonly tunnel: TunnelRouter;
     readonly runtime: (target: ResolvedTarget) => DevRuntime;
@@ -51,6 +53,7 @@ export class DevRunner {
             projectLoader: new ProjectLoader(openModuleLoader, startupShell),
             store,
             state,
+            lock: DevLock.create(cliLogger('Dev')),
             codegen: CodegenRunner.create(quietSteps, codegenLogger),
             codegenLogger,
             tunnel: new TunnelRouter(makeCoordinator, tunnelLogger),
@@ -104,14 +107,14 @@ export class DevRunner {
         store.setBusy(true);
         const restarts = this.restarts;
         await using loaded = await this.deps.projectLoader.readConfig();
-        const { config } = loaded;
+        const { config, files } = loaded;
         // a key pressed during the config load had no session to stop
         if (this.next !== 'session' || this.restarts !== restarts) return;
         profileMark('config');
         store.setIdleAnimation(config.idleAnimation);
-        this.currentSession = new DevSession(config, this.deps.runtime(config.target), {
+        this.currentSession = new DevSession(config, files, this.deps.runtime(config.target), {
             ...this.deps,
-            onEvent: (event) => void tunnel.route(config.tunnel, event)
+            onListening: (port, instance) => void tunnel.route(config.tunnel, port, instance)
         });
 
         try {
@@ -133,13 +136,16 @@ export class DevRunner {
         this.next = 'quit';
         this.deps.store.setPhase('quitting');
         await this.currentSession?.stop();
+        // release after the clear, or the clear can wipe the endpoint the next session just set
+        const endpointCleared = this.deps.tunnel.stop().finally(() => this.deps.lock.release());
         // the endpoint clear is a discord round trip
-        await settleWithin(this.deps.tunnel.stop(), TUNNEL_TEARDOWN_MS);
+        await settleWithin(endpointCleared, TUNNEL_TEARDOWN_MS);
         this.signalResolve?.();
     }
 
     public async restart(): Promise<void> {
         if (this.next === 'quit') return;
+        this.deps.store.beginRestart();
         this.next = 'session';
         this.restarts++;
         await this.currentSession?.stop();
@@ -156,6 +162,7 @@ export class DevRunner {
     }
 
     public refreshCommands(shouldRefresh: boolean): void {
+        this.deps.store.clearPrompt();
         this.currentSession?.refreshCommands(shouldRefresh);
     }
 

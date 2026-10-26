@@ -1,4 +1,5 @@
 import { WORDMARK } from '@seedcord/errors/internal';
+import { isInteractive } from '@seedcord/utils/internal';
 import { render } from 'ink';
 import React from 'react';
 
@@ -12,6 +13,8 @@ import { DevStore } from '#ui/stores/DevStore.ts';
 import { LogStore } from '#ui/stores/LogStore.ts';
 
 import { DevRunner } from './DevRunner';
+import { DevSignals } from './DevSignals';
+import { runPlain } from './runPlain';
 
 import type { Command } from '@commander-js/extra-typings';
 
@@ -32,21 +35,15 @@ export class DevCommand extends BaseCommand {
                 const stateFolder = new StateFolder(process.cwd(), this.logger);
                 const runner = DevRunner.create(store, stateFolder);
 
-                // ink intercepts Ctrl-C under raw mode. this fires only when stdin is not raw.
-                const onSignal = (): void => {
-                    void runner.quit();
-                };
-                process.once('SIGINT', onSignal);
-                process.once('SIGTERM', onSignal);
-
                 try {
-                    await this.runDevApp(store, runner, stateFolder);
+                    // ink takes Ctrl-C itself in raw mode
+                    using _signals = DevSignals.own(() => void runner.quit());
+                    await (isInteractive()
+                        ? this.runDevApp(store, runner, stateFolder)
+                        : runPlain(store, runner, process.stdin));
                 } catch (error: unknown) {
                     this.logger.error(`${WORDMARK} dev failed`, error);
                     process.exitCode = 1;
-                } finally {
-                    process.off('SIGINT', onSignal);
-                    process.off('SIGTERM', onSignal);
                 }
 
                 // the in-ui logs went with the unmount
@@ -80,9 +77,9 @@ export class DevCommand extends BaseCommand {
         const { unmount, waitUntilExit } = render(
             React.createElement(DevApp, {
                 store,
-                initialFilters: stateFolder.read(devPrefsFile),
-                onFiltersChange: (filters) => {
-                    stateFolder.write(devPrefsFile, filters);
+                initialPrefs: stateFolder.read(devPrefsFile),
+                onPrefsChange: (prefs) => {
+                    stateFolder.write(devPrefsFile, prefs);
                 },
                 onQuit: () => runner.quit(),
                 onDisconnect: () => runner.disconnect(),

@@ -7,6 +7,6 @@ export default defineConfig({
         setupFiles: ['./tests/setup.ts']
     }),
     pack: createTsdownConfig({
-        entry: ['src/index.ts', 'src/internal.index.ts', 'src/node.ts', 'src/node-internal.index.ts']
+        entry: ['src/index.ts', 'src/internal.index.ts']
     })
 });

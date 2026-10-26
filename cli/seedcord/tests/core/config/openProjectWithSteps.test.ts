@@ -1,5 +1,4 @@
-import { mkdirSync, mkdtempDisposableSync, realpathSync, writeFileSync } from 'node:fs';
-import { tmpdir } from 'node:os';
+import { mkdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 
 import { isSeedcordError, SeedcordErrorCode } from '@seedcord/errors';
@@ -8,10 +7,12 @@ import { assert, describe, expect, it, onTestFinished } from 'vite-plus/test';
 import { openProjectWithSteps } from '#core/config/openProjectWithSteps';
 import { ProjectLoader } from '#core/config/ProjectLoader';
 import { openModuleLoader } from '#core/modules/openModuleLoader';
-import { ShellMode } from '#core/viteMode';
+import { ShellMode } from '#src/core/ShellMode';
 import { configWithGreetingPlugin, GREETING, GREETING_PROBE } from '#tests/greetingPlugin';
 
-const SERVER_FIELDS = "root: './src', instance: './bot.ts', entry: './index.ts'";
+import { tempProject } from './projectLoaderFixtures';
+
+const SERVER_FIELDS = "root: './src', instance: './bot.ts', build: { start: './index.ts' }";
 const STARTED = 'seedcordTestPluginStarted';
 
 type OpenSteps = Parameters<typeof openProjectWithSteps>[0];
@@ -34,10 +35,7 @@ function recordingSteps(): RecordedSteps {
 }
 
 function projectWithConfig(source: string): string {
-    const temp = mkdtempDisposableSync(join(tmpdir(), 'seedcord-open-'));
-    onTestFinished(() => temp.remove());
-    // the loader resolves against the real path of a mac temp dir
-    const projectDir = realpathSync(temp.path);
+    const projectDir = tempProject();
     mkdirSync(join(projectDir, 'src'));
     writeFileSync(join(projectDir, 'seedcord.config.ts'), source);
     writeFileSync(join(projectDir, 'src/probe.ts'), GREETING_PROBE);
@@ -69,7 +67,7 @@ describe('openProjectWithSteps', () => {
 
     it('runs the check before any plugin starts', async () => {
         const projectDir = projectWithConfig(
-            `export default { ${SERVER_FIELDS}, vitePlugins: [{ name: 'marks-start', config: () => { globalThis.${STARTED} = true; } }] };\n`
+            `export default { ${SERVER_FIELDS}, vitePlugins: () => [{ name: 'marks-start', config: () => { globalThis.${STARTED} = true; } }] };\n`
         );
         onTestFinished(() => {
             Reflect.deleteProperty(globalThis, STARTED);
@@ -91,7 +89,7 @@ describe('openProjectWithSteps', () => {
 
     it('fails the load plugins step when a plugin throws as Vite starts', async () => {
         const projectDir = projectWithConfig(
-            `export default { ${SERVER_FIELDS}, vitePlugins: [{ name: 'breaks-on-start', config: () => { throw new Error('bad option'); } }] };\n`
+            `export default { ${SERVER_FIELDS}, vitePlugins: () => [{ name: 'breaks-on-start', config: () => { throw new Error('bad option'); } }] };\n`
         );
         const steps = recordingSteps();
 

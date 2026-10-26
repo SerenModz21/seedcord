@@ -1,6 +1,6 @@
 {
     "name": "@seedcord/http",
-    "version": "0.10.2",
+    "version": "0.11.0",
     "description": "HTTP interactions transport for seedcord bots",
     "keywords": [
         "discord",
@@ -97,6 +97,6 @@
     },
     "engines": {
         "bun": ">=1.4.2",
-        "node": ">=24.11"
+        "node": "^24.22.1 || >=26.12.1"
     }
 }

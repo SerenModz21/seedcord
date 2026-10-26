@@ -1,9 +1,9 @@
 import path from 'node:path';
 
 import { RuntimeBuild } from '@seedcord/docs-generator/runtime-build';
+import { DocKind } from '@seedcord/docs-search';
 
 import { ApiAdapter } from '#model/ApiAdapter';
-import { DocKind } from '#model/kinds';
 import { PackageTree, type AdapterEntry } from '#model/PackageTree';
 import { PackageDirectory } from '#src/PackageDirectory';
 import { inlineTypeToText, sigPartsToText } from '#transformers/signature-renderer';
@@ -14,13 +14,13 @@ import type {
     DocManifestPackage,
     DocNode,
     DocPackageModel,
-    DocSearchEntry,
     DocSignature,
     InlineType,
     RenderedSignature,
     SigPart
 } from '#src/types';
 import type { ApiModel } from '@microsoft/api-extractor-model';
+import type { DocSearchEntry } from '@seedcord/docs-search';
 
 function buildIndexes(root: DocNode, manifest: DocManifestPackage): DocIndexes {
     const byId = new Map<number, DocNode>();

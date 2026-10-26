@@ -1,5 +1,34 @@
 # @seedcord/logger
 
+## 0.5.0
+
+### 💥 Breaking
+
+- Requires Node 24.22.1+ on 24.x or Node 26.12.1+ for the October 2026 security fixes. ([`cc7930b`](https://github.com/seedcord/seedcord/commit/cc7930b810b17be66cff49c6cd793b199ef752a3))
+- seedcord now needs envapt ≥9.2. Run `pnpm add envapt@latest`, then update your own envapt reads with the [v8 to v9 migration guide](https://envapt.materwelon.dev/docs/migration-v8-to-v9/). ([`99e7d64`](https://github.com/seedcord/seedcord/commit/99e7d6400b19af6db55548fd02c41ac1eb9b1737))
+- `WinstonFileSink` now always writes inside the `logs` folder beside `seedcord.config.ts`, and `filename` takes only a file name. Change `filename: 'logs/bot-{date}.log'` to `filename: 'bot-{date}.log'`. A name with a folder in it throws the new `LoggerFileNameHasFolder`. ([#410](https://github.com/seedcord/seedcord/pull/410))
+- `new WinstonConsoleSink()` without a `format` now prints JSON lines unless the bot runs from a terminal in development. It used to print readable columns everywhere. ([#418](https://github.com/seedcord/seedcord/pull/418))
+
+### ✨ Minor
+
+- Added a `json-ansi` format for `WinstonConsoleSink` that keeps ANSI color codes in `message`, so a tool that spawns the bot can render them. A bot in development prints it by default when its output is piped or redirected. ([#418](https://github.com/seedcord/seedcord/pull/418))
+- Added `installNodeConsole()` to `@seedcord/logger/node`. It installs only the node console sink, pretty in development and JSON elsewhere. ([`b3d661a`](https://github.com/seedcord/seedcord/commit/b3d661a9ff02ab15c3b40aaea5dd786c79d9bc9c))
+
+### 🩹 Patch
+
+- Fixed pretty logging for object extras containing circular references or BigInt values. Circular references now appear as `[Circular]`, and BigInt values render as decimal digits. ([#378](https://github.com/seedcord/seedcord/pull/378), thanks [@lunaradev1](https://github.com/lunaradev1))
+- Fixed an `Error` in a JSON log's `extras` coming out as just `{"name":"TypeError"}`. It now carries its `message` and `stack` too. ([`99256de`](https://github.com/seedcord/seedcord/commit/99256de0581810d71fab133090e07f8d2fea48d9))
+- Fixed the JSON log format writing `logger.info('ran %s', 'ping')` with `ran %s` as its message. It now writes `ran ping`, and `extras` holds only the arguments left over after the specifiers. ([`99256de`](https://github.com/seedcord/seedcord/commit/99256de0581810d71fab133090e07f8d2fea48d9))
+- Fixed the extra values in a log call showing in only one of your sinks. With the console and a file sink both on, `logger.info('saved', id, name)` printed `id` and `name` in the first sink to format the line and left them out of the second. ([#391](https://github.com/seedcord/seedcord/pull/391))
+- Fixed a node bot crashing after its stdout closed, for example when you pipe its output into `head`, or spinning a CPU core if it had an `uncaughtException` handler. Console logs now stop once stdout closes, and the bot keeps running. ([#391](https://github.com/seedcord/seedcord/pull/391))
+- Fixed `formatBody` starting with a space, or with a blank line above an error's stack, when the record's message is empty. ([#391](https://github.com/seedcord/seedcord/pull/391))
+
+#### 📦 Seedcord packages
+
+- `@seedcord/errors` 0.14.0-next.0 → 0.14.0
+- `@seedcord/types` 0.15.0-next.0 → 0.15.0
+- `@seedcord/utils` 0.9.0-next.1 → 0.9.0
+
 ## 0.4.4
 
 ### 🩹 Patch

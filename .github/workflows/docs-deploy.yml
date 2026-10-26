@@ -6,6 +6,7 @@ on:
     paths:
       - 'apps/docs/**'
       - 'tooling/docs-engine/**'
+      - 'tooling/docs-search/**'
       - 'tooling/docs-generator/**'
       - 'tooling/ui/**'
       - 'scripts/src/docs/**'
@@ -71,7 +72,6 @@ jobs:
       - name: Render every page
         run: vp -C apps/docs run build
         env:
-          NEXT_PUBLIC_SITE_URL: https://seedcord.org/docs
           DOCS_BUILD_CPUS: 4
 
       - name: Check every docs link

@@ -1,6 +1,6 @@
 {
     "name": "@seedcord/gateway",
-    "version": "0.7.5",
+    "version": "0.8.0",
     "description": "Gateway transport for seedcord bots, using the discord.js client",
     "keywords": [
         "discord",
@@ -94,6 +94,6 @@
     },
     "engines": {
         "bun": ">=1.4.2",
-        "node": ">=24.11"
+        "node": "^24.22.1 || >=26.12.1"
     }
 }

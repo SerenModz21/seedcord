@@ -1,5 +1,6 @@
 import { dirname } from 'node:path';
 
+import { readBotToken } from '@seedcord/core/internal';
 import { paint, SeedcordErrorCode } from '@seedcord/errors';
 import { SeedcordError } from '@seedcord/errors/internal';
 import { HostAugmentTarget, HostVersion, type SeedcordInstance } from '@seedcord/types/internal';
@@ -13,10 +14,11 @@ import { TscRunner } from './TscRunner';
 
 import type { CodegenRunner } from '#commands/codegen/CodegenRunner';
 import type { ResolvedSeedcordConfig } from '#core/config/schema';
+import type { ProjectFiles } from '#core/project/ProjectFiles';
+import type { DevLock } from '#core/state/DevLock';
 import type { StateFolder } from '#core/state/StateFolder';
 import type { DevStore } from '#ui/stores/DevStore.ts';
 import type { DevRuntime } from './runtime/DevRuntime';
-import type { DevEventHandler } from './runtime/events';
 import type { ILogger } from '@seedcord/types';
 
 // gonna wait up to 5s otherwise a command import could block quitting forever
@@ -27,7 +29,8 @@ export interface DevSessionDeps {
     readonly codegen: Pick<CodegenRunner, 'writeFrom'>;
     readonly codegenLogger: ILogger;
     readonly state: StateFolder;
-    readonly onEvent: DevEventHandler;
+    readonly lock: DevLock;
+    readonly onListening: (port: number, instance: SeedcordInstance) => void;
 }
 
 export class DevSession {
@@ -40,6 +43,7 @@ export class DevSession {
 
     constructor(
         private readonly config: ResolvedSeedcordConfig,
+        private readonly files: ProjectFiles,
         private readonly runtime: DevRuntime,
         private readonly deps: DevSessionDeps
     ) {}
@@ -51,13 +55,20 @@ export class DevSession {
     private async startRuntime(): Promise<void> {
         await this.runtime.start({
             config: this.config,
+            files: this.files,
             state: this.deps.state,
             onEvent: (event) => {
                 this.deps.store.apply(event);
-                this.deps.onEvent(event);
+                if (event.type === 'server-listening') this.deps.onListening(event.port, this.startedInstance());
             }
         });
         profileMark('vite');
+    }
+
+    // only a bot that run() loaded and started can report a port
+    private startedInstance(): SeedcordInstance {
+        if (!this.instance) throw new SeedcordError(SeedcordErrorCode.CliDevRuntimeNotRunning, ['onListening']);
+        return this.instance;
     }
 
     private startTypecheck(): void {
@@ -90,6 +101,7 @@ export class DevSession {
         profileMark('entry');
         const exported = await this.unlessStopped(resolveDefaultExport(module));
         const instance = toSeedcordInstance(exported, this.config.instance);
+        this.deps.lock.hold(readBotToken().applicationId, dirname(this.config.configFile));
 
         this.instance = instance;
         store.setTransport({
@@ -170,6 +182,7 @@ export class DevSession {
         try {
             const { outputPath, changed } = await codegen.writeFrom({
                 config: this.config,
+                files: this.files,
                 instance,
                 modules: this.runtime
             });

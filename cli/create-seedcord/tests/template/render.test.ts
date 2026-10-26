@@ -5,6 +5,7 @@ import { describe, expect, it } from 'vite-plus/test';
 
 import { buildContext } from '#template/context';
 import { renderTemplates } from '#template/render';
+import { BOT_TOKEN } from '#tests/token';
 
 import type { ScaffoldAnswers } from '#template/context';
 
@@ -15,7 +16,7 @@ const GATEWAY: ScaffoldAnswers = {
     directory: 'my-bot',
     transport: 'gateway',
     capabilities: ['reactions'],
-    token: 'aaa.bbb.ccc',
+    token: BOT_TOKEN,
     testingGuilds: [],
     botColor: 'Blurple',
     install: true,
@@ -26,7 +27,7 @@ const HTTP: ScaffoldAnswers = {
     directory: 'my-bot',
     transport: 'http',
     runtime: 'server',
-    token: 'aaa.bbb.ccc',
+    token: BOT_TOKEN,
     testingGuilds: [],
     botColor: 'Blurple',
     install: true,
@@ -262,9 +263,9 @@ describe('the rendered edge project', () => {
         expect(files.has('cloudflare.config.ts')).toBe(false);
     });
 
-    it('leaves entry out of seedcord.config.ts, which the cli refuses on edge', async () => {
-        expect(await renderOne(EDGE, 'seedcord.config.ts')).not.toMatch(/\bentry\b/);
-        expect(await renderOne(HTTP, 'seedcord.config.ts')).toContain("entry: './index.ts'");
+    it('writes build.start for a node bot and leaves it out on edge', async () => {
+        expect(await renderOne(EDGE, 'seedcord.config.ts')).not.toContain('start:');
+        expect(await renderOne(HTTP, 'seedcord.config.ts')).toContain("build: { start: './index.ts' }");
     });
 
     it("points TypeScript at the worker's build condition and the types cf writes", async () => {

@@ -3,8 +3,7 @@ import { inspect } from 'node:util';
 
 import { SeedcordErrorCode, paint } from '@seedcord/errors';
 import { SeedcordError, SeedcordRangeError, SeedcordTypeError } from '@seedcord/errors/internal';
-import { keepDefined } from '@seedcord/utils';
-import { traverseDirectory } from '@seedcord/utils/node';
+import { keepDefined, importFiles } from '@seedcord/utils';
 import { Migrator, NO_MIGRATIONS } from 'kysely/migration';
 
 import type { MigrationManagerContext, MigrationOptions, StepMigrationOptions } from './types/KyselyMigration';
@@ -138,18 +137,15 @@ export class KyselyMigrationManager {
         let encounteredError: unknown;
 
         for (let index = 0; index < steps; index += 1) {
-            const { error, results } = await runner(migrator);
-
-            if (results?.length) {
-                aggregated.push(...results);
-            }
+            const { error, results = [] } = await runner(migrator);
+            aggregated.push(...results);
 
             if (error) {
                 encounteredError = error;
                 break;
             }
 
-            if (!results?.length) {
+            if (!results.some((result) => result.status === 'Success')) {
                 break;
             }
         }
@@ -184,7 +180,7 @@ export class KyselyMigrationManager {
         this.ctx.logger.debug(paint.mute(`Loading migrations from ${paint.path(dir)}`));
 
         const files: MigrationFile[] = [];
-        for await (const { relativePath, imported } of traverseDirectory(dir)) {
+        for await (const { relativePath, imported } of importFiles(dir)) {
             const migration = migrationIn(imported);
             if (!migration) {
                 throw new SeedcordTypeError(SeedcordErrorCode.PluginKyselyInvalidMigrationModule, [relativePath]);

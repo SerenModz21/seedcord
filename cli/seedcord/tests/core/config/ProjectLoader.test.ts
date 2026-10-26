@@ -1,13 +1,13 @@
-import { mkdirSync, writeFileSync } from 'node:fs';
-import { join, resolve } from 'node:path';
+import { mkdirSync, symlinkSync, writeFileSync } from 'node:fs';
+import { dirname, join, resolve } from 'node:path';
 
 import { SeedcordErrorCode, isSeedcordError } from '@seedcord/errors';
-import { toPosixPath } from '@seedcord/utils/node/internal';
+import { toPosixPath } from '@seedcord/utils/internal';
 import { assert, describe, it, expect, onTestFinished, vi } from 'vite-plus/test';
 
 import { ProjectLoader } from '#core/config/ProjectLoader';
 import { openModuleLoader } from '#core/modules/openModuleLoader';
-import { ShellMode } from '#core/viteMode';
+import { ShellMode } from '#src/core/ShellMode';
 import { copyEdgeBotForTest } from '#tests/commands/build/edgeBot';
 import { cloudflareConfigSource } from '#tests/edgeFolder';
 
@@ -37,16 +37,34 @@ describe('ProjectLoader', () => {
         expect(resolved.instance).toBe(resolve(projectDir, 'src/bot.ts'));
         expect(resolved.target).toEqual({
             kind: 'server',
-            entry: resolve(projectDir, 'src/index.ts'),
+            start: resolve(projectDir, 'src/index.ts'),
             outDir: resolve(projectDir, 'dist')
         });
         expect(resolved.build.tsconfig).toBeUndefined();
     });
 
+    it('resolves every path under a symlinked root to the folder the link points at', async () => {
+        const projectDir = tempProject();
+        writeFileSync(join(projectDir, 'seedcord.config.ts'), '');
+        const source = join(projectDir, 'source');
+        mkdirSync(source);
+        symlinkSync(source, join(projectDir, 'src'), 'dir');
+        const { open } = stubModulesExporting({ ...MINIMAL, root: './src', files: ['./locales'] });
+
+        await using loaded = await new ProjectLoader(open, new ShellMode()).readConfig(projectDir);
+
+        expect(loaded.config).toMatchObject({
+            root: source,
+            instance: join(source, 'bot.ts'),
+            files: [join(source, 'locales')],
+            target: { start: join(source, 'index.ts') }
+        });
+    });
+
     it.each([
-        [new ShellMode(), 'production'],
-        [new ShellMode({ key: 'ENV', value: 'staging' }), 'staging']
-    ])('gives envapt the .env file of the mode the bot loads in', async (shell, mode) => {
+        [undefined, 'production'],
+        [{ key: 'ENV', value: 'staging' } as const, 'staging']
+    ])('gives envapt the .env file of the mode the bot loads in', async (shellVar, mode) => {
         const projectDir = tempProject();
         writeFileSync(join(projectDir, 'seedcord.config.ts'), '');
         for (const name of ['test', 'staging', 'production']) {
@@ -57,13 +75,17 @@ describe('ProjectLoader', () => {
         onTestFinished(() => process.chdir(cwd));
         // envapt reads the folder it loads in, under vitest's NODE_ENV=test
         vi.resetModules();
-        const [{ ProjectLoader: FreshLoader }, { Envapter }] = await Promise.all([
+        const [{ ProjectLoader: FreshLoader }, { ShellMode: FreshShell }, { Envapter }] = await Promise.all([
             import('#core/config/ProjectLoader'),
+            import('#src/core/ShellMode'),
             import('envapt')
         ]);
         const { open } = stubModulesExporting(MINIMAL);
 
-        await using _project = await openProject(new FreshLoader(open, shell, 'production'), projectDir);
+        await using _project = await openProject(
+            new FreshLoader(open, new FreshShell(shellVar), 'production'),
+            projectDir
+        );
 
         expect(Envapter.get('PROBE')).toBe(mode);
     });
@@ -75,7 +97,7 @@ describe('ProjectLoader target', () => {
 
         const { target } = await load();
 
-        expect(target).toMatchObject({ kind: 'server', entry: join(projectDir, 'index.ts') });
+        expect(target).toMatchObject({ kind: 'server', start: join(projectDir, 'index.ts') });
     });
 
     it('targets edge when a cloudflare.config.ts and a tsconfig with the workerd condition are in the config folder', async () => {
@@ -123,7 +145,7 @@ describe('ProjectLoader target', () => {
         await expect(
             openProject(new ProjectLoader(openModuleLoader, new ShellMode()), projectDir)
         ).rejects.toMatchObject({
-            code: SeedcordErrorCode.CliConfigFieldUnused,
+            code: SeedcordErrorCode.CliEdgeWithoutWorkerdCondition,
             message: expect.stringContaining(toPosixPath(join(projectDir, CLOUDFLARE_CONFIG))) as string
         });
     });
@@ -133,15 +155,6 @@ describe('ProjectLoader target', () => {
         writeEdgeConfig(projectDir);
 
         await expect(load()).rejects.toMatchObject({ code: SeedcordErrorCode.CliTsconfigNotFound });
-    });
-
-    it('throws CliConfigFieldUnused for a server config that sets port', async () => {
-        const { projectDir, load } = projectWith({ ...MINIMAL, port: 9000 });
-
-        await expect(load()).rejects.toMatchObject({
-            code: SeedcordErrorCode.CliConfigFieldUnused,
-            message: expect.stringContaining(toPosixPath(join(projectDir, 'seedcord.config.ts'))) as string
-        });
     });
 
     it('throws CliWorkerdConditionWithoutCloudflareConfig for the workerd condition with no cloudflare.config.ts', async () => {
@@ -172,7 +185,7 @@ describe('ProjectLoader target', () => {
     });
 });
 
-describe('ProjectLoader entry on an edge bot', () => {
+describe('ProjectLoader on an edge bot', () => {
     function edgeProjectWith(config: unknown): ReturnType<typeof projectWith> {
         const project = projectWith(config);
         writeEdgeConfig(project.projectDir);
@@ -180,7 +193,7 @@ describe('ProjectLoader entry on an edge bot', () => {
         return project;
     }
 
-    it('loads a config without entry', async () => {
+    it('serves dev on port 3000 by default', async () => {
         const { projectDir, load } = edgeProjectWith(EDGE_MINIMAL);
 
         const { target } = await load();
@@ -222,24 +235,6 @@ describe('ProjectLoader entry on an edge bot', () => {
         await expect(load()).rejects.toMatchObject({
             code: SeedcordErrorCode.CliConfigInvalidField,
             message: expect.stringContaining('port') as string
-        });
-    });
-
-    it('throws CliConfigFieldUnused for an edge config that sets build.outDir', async () => {
-        const { projectDir, load } = edgeProjectWith({ ...EDGE_MINIMAL, build: { outDir: './out' } });
-
-        await expect(load()).rejects.toMatchObject({
-            code: SeedcordErrorCode.CliConfigFieldUnused,
-            message: expect.stringContaining(toPosixPath(join(projectDir, 'seedcord.config.ts'))) as string
-        });
-    });
-
-    it('throws CliConfigFieldUnused for an edge config that sets entry', async () => {
-        const { projectDir, load } = edgeProjectWith(MINIMAL);
-
-        await expect(load()).rejects.toMatchObject({
-            code: SeedcordErrorCode.CliConfigFieldUnused,
-            message: expect.stringContaining(toPosixPath(join(projectDir, 'seedcord.config.ts'))) as string
         });
     });
 });
@@ -304,7 +299,7 @@ describe('ProjectLoader validation', () => {
     it('closes the module loader when the config is invalid', async () => {
         const projectDir = tempProject();
         writeFileSync(join(projectDir, 'seedcord.config.ts'), '');
-        const modules = stubModulesExporting({ entry: './index.ts' });
+        const modules = stubModulesExporting({ build: { start: './index.ts' } });
 
         await expect(new ProjectLoader(modules.open, new ShellMode()).readConfig(projectDir)).rejects.toMatchObject({
             code: SeedcordErrorCode.CliConfigInvalidField
@@ -355,21 +350,29 @@ describe('ProjectLoader validation', () => {
     });
 
     it('throws when instance is missing', async () => {
-        await expect(projectWith({ entry: './index.ts' }).load()).rejects.toMatchObject({
+        await expect(projectWith({ build: { start: './index.ts' } }).load()).rejects.toMatchObject({
             code: SeedcordErrorCode.CliConfigInvalidField,
             message: expect.stringContaining('instance in the seedcord config') as string
         });
     });
 
-    it('throws when entry is missing', async () => {
-        await expect(projectWith({ instance: './bot.ts' }).load()).rejects.toMatchObject({
+    it('resolves an export build when build.start is unset', async () => {
+        const { projectDir, load } = projectWith({ instance: './bot.ts' });
+
+        const { target } = await load();
+
+        expect(target).toEqual({ kind: 'server', start: undefined, outDir: resolve(projectDir, 'dist') });
+    });
+
+    it('rejects an empty build.start', async () => {
+        await expect(projectWith({ instance: './bot.ts', build: { start: '' } }).load()).rejects.toMatchObject({
             code: SeedcordErrorCode.CliConfigInvalidField,
-            message: expect.stringContaining('entry in the seedcord config') as string
+            message: expect.stringContaining('build.start in the seedcord config') as string
         });
     });
 
     it('reports every missing and invalid field at once', async () => {
-        const error: unknown = await projectWith({ entry: './index.ts', tunnel: 'yes', build: { outDir: 1 } })
+        const error: unknown = await projectWith({ tunnel: 'yes', build: { outDir: 1 } })
             .load()
             .catch((caught: unknown) => caught);
 
@@ -431,19 +434,63 @@ describe('ProjectLoader validation', () => {
         });
     });
 
-    it('rejects vitePlugins that is not an array', async () => {
-        await expect(projectWith({ ...MINIMAL, vitePlugins: { name: 'yaml' } }).load()).rejects.toMatchObject({
+    it('rejects vitePlugins written as an array', async () => {
+        await expect(projectWith({ ...MINIMAL, vitePlugins: [{ name: 'yaml' }] }).load()).rejects.toMatchObject({
             code: SeedcordErrorCode.CliConfigInvalidField,
-            message: expect.stringContaining('vitePlugins') as string
+            message: expect.stringContaining('() => [yaml()]') as string
+        });
+    });
+});
+
+describe('ProjectLoader files', () => {
+    it('lists no folders when the config leaves files out', async () => {
+        const { files } = await projectWith(MINIMAL).load();
+
+        expect(files).toEqual([]);
+    });
+
+    it('resolves a relative folder against root and keeps an absolute one', async () => {
+        const projectDir = tempProject();
+        writeFileSync(join(projectDir, 'seedcord.config.ts'), '');
+        const tags = join(projectDir, 'src', 'tags');
+        const { open } = stubModulesExporting({ ...MINIMAL, root: './src', files: ['./locales', tags] });
+
+        await using loaded = await new ProjectLoader(open, new ShellMode()).readConfig(projectDir);
+
+        expect(loaded.config.files).toEqual([join(projectDir, 'src', 'locales'), tags]);
+    });
+
+    it('loads a folder beside root inside the folder that holds the config', async () => {
+        const { files, configFile } = await projectWith({ ...MINIMAL, root: './src', files: ['../shared'] }).load();
+
+        expect(files).toEqual([join(dirname(configFile), 'shared')]);
+    });
+
+    it('throws CliListedFolderUnusable for a folder outside the folder that holds the config', async () => {
+        const load = projectWith({ ...MINIMAL, root: './src', files: ['../../shared'] }).load();
+
+        await expect(load).rejects.toMatchObject({
+            code: SeedcordErrorCode.CliListedFolderUnusable,
+            message: expect.stringContaining('outside the folder that holds seedcord.config.ts') as string
         });
     });
 
-    // dev and codegen never write outDir
-    it('loads a build.outDir that holds root', async () => {
-        const { projectDir, load } = projectWith({ ...MINIMAL, root: './src', build: { outDir: '.' } });
+    it('throws CliConfigOutDirDeletesRoot for an outDir that holds root, the way seedcord dev loads it', async () => {
+        const load = projectWith({ ...MINIMAL, root: './src', build: { ...MINIMAL.build, outDir: '.' } }).load();
 
-        const { target } = await load();
+        await expect(load).rejects.toMatchObject({ code: SeedcordErrorCode.CliConfigOutDirDeletesRoot });
+    });
 
-        expect(target).toMatchObject({ outDir: projectDir });
+    it('throws CoreDirectorySkipped for a folder inside a dot-folder', async () => {
+        const load = projectWith({ ...MINIMAL, files: ['./.drafts/locales'] }).load();
+
+        await expect(load).rejects.toMatchObject({ code: SeedcordErrorCode.CoreDirectorySkipped });
+    });
+
+    it.each([['./locales'], [['./locales', 3]]])('rejects files set to %j', async (files) => {
+        await expect(projectWith({ ...MINIMAL, files }).load()).rejects.toMatchObject({
+            code: SeedcordErrorCode.CliConfigInvalidField,
+            message: expect.stringContaining('files in the seedcord config') as string
+        });
     });
 });

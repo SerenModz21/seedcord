@@ -1,6 +1,6 @@
+import { DocKind } from '@seedcord/docs-search';
 import { describe, expect, it } from 'vite-plus/test';
 
-import { DocKind } from '#model/kinds';
 import { kindKey, kindLabel, kindName } from '#src/kinds';
 
 describe('kinds helpers', () => {

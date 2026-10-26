@@ -9,6 +9,8 @@ import type { ViteUserConfig, AliasOptions } from 'vite-plus';
 import type { InlineConfig } from 'vite-plus/test/node';
 
 const base = defineConfig({
+    // oxc reads the Next apps' jsx: preserve as the classic runtime
+    oxc: { jsx: { runtime: 'automatic' } },
     test: {
         // isolating every file cost about 40% of the suite's CPU
         isolate: false,
@@ -17,7 +19,7 @@ const base = defineConfig({
         // mergeConfig puts these before a package's own setupFiles
         setupFiles: [fileURLToPath(new URL(`freshModules${extname(import.meta.url)}`, import.meta.url))],
         // node_modules packages that keep state between test files
-        server: { deps: { inline: ['envapt', '@testing-library/react'] } },
+        server: { deps: { inline: ['envapt', '@testing-library/react', '@cloudflare/vite-plugin'] } },
         testTimeout: 10_000,
         passWithNoTests: true,
         exclude: [...configDefaults.exclude, '**/.claude/**'],

@@ -1,5 +1,0 @@
----
-'@seedcord/errors': minor
----
-
-Added `CoreVitePluginThrew` for a Vite plugin in `vitePlugins` that throws while Vite starts or while it loads a file, or whose promise rejects while seedcord reads the config.

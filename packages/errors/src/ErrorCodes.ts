@@ -50,7 +50,7 @@ export enum SeedcordErrorCode {
     CoreBotRoleMissing = 1204,
     /** A bot controller was constructed without the folder that holds its handlers. */
     CoreControllerPathMissing = 1205,
-    /** A file that seedcord could not import, in the bot or in the CLI. */
+    /** seedcord could not import a file in the bot or in the CLI. */
     CoreImportFailed = 1206,
     /** A file or folder that seedcord reads could not be read. */
     CorePathUnreadable = 1207,
@@ -62,7 +62,7 @@ export enum SeedcordErrorCode {
     CoreAccessorUnresolved = 1210,
     /** A shutdown task was added on an edge bot. Cloudflare stops an isolate without a shutdown hook. */
     CoreLifecycleUnavailable = 1211,
-    /** `emit` was called on the bus. It reaches listeners but skips every subscriber. */
+    /** `emit` was called on the bus. It calls the listeners and skips every subscriber. */
     CoreBusEmitUnavailable = 1212,
     /** A command registers to the `'config'` guilds while `commands.guilds` is empty. */
     CoreCommandGuildsEmpty = 1213,
@@ -76,7 +76,7 @@ export enum SeedcordErrorCode {
     CorePluginKeyMalformed = 1217,
     /** An attached plugin extends the `Plugin` class of a different copy of `@seedcord/core`. */
     CorePluginFromOtherCore = 1218,
-    /** A folder or the entry file is outside `root`. */
+    /** A folder or the `build.start` file is outside `root`. */
     CorePathOutsideRoot = 1219,
     /** A plugin declares a transport or runtime the bot doesn't use. */
     CorePluginScopeMismatch = 1220,
@@ -94,10 +94,14 @@ export enum SeedcordErrorCode {
     CoreWebhookUrlInvalid = 1226,
     /** Reading from Discord with `DISCORD_BOT_TOKEN` failed, like the application, its public key, or its commands. */
     CoreDiscordReadFailed = 1227,
-    /** Two routes, commands, middleware classes, migrations, or customId fields have the same name. */
+    /** Two routes, commands, migrations, or customId fields have the same name, or two code files build to the same file. */
     CoreDuplicateName = 1228,
-    /** A Vite plugin from `vitePlugins` threw while Vite started or loaded a file, or its promise rejected while seedcord read the config. */
+    /** A Vite plugin from `vitePlugins` threw while Vite started or loaded a file, or failed when seedcord called `vitePlugins`. */
     CoreVitePluginThrew = 1229,
+    /** `readFiles` read a folder that `files` in `seedcord.config.ts` leaves out. */
+    CoreDirectoryNotListed = 1230,
+    /** A folder is inside one that `seedcord build` skips, like a dot-folder, `node_modules`, `outDir` or the logs folder. */
+    CoreDirectorySkipped = 1231,
 
     /** A command class carries `@RegisterCommand` twice. */
     DecoratorCommandAlreadyRegistered = 1301,
@@ -149,7 +153,7 @@ export enum SeedcordErrorCode {
     ModalFieldWrongKind = 1612,
     /** A modal field read as required has nothing picked. */
     ModalFieldEmpty = 1613,
-    /** A channel select picked a channel type that `getSelectedChannels()` was told to exclude. */
+    /** A channel select returned a channel whose type the `getSelectedChannels()` call excludes. */
     ModalFieldChannelType = 1614,
     /** A customId was encoded under an older shape of the same definition. */
     CustomIdWireStale = 1615,
@@ -165,7 +169,7 @@ export enum SeedcordErrorCode {
     PaginationInvalidPerPage = 1801,
     /** A control row has no controls, or more than the five buttons Discord allows. */
     PaginationControlCount = 1802,
-    /** A control row repeats a control, which would give two buttons the same custom_id. */
+    /** A control row lists the same control twice. Its two buttons would share a custom_id. */
     PaginationDuplicateControls = 1803,
 
     /** A color value doesn't resolve to a Discord color integer. */
@@ -177,6 +181,9 @@ export enum SeedcordErrorCode {
     UtilTableOptionInvalid = 1951,
     /** `assertNever` ran with a value that its types ruled out. */
     UtilUnhandledUnionMember = 1952,
+
+    /** `WinstonFileSink` got a `filename` with a folder in it. File logs always go in the logs folder. */
+    LoggerFileNameHasFolder = 1971,
 
     /** A plugin's constructor called `rejectOptions` on the options it got. */
     PluginOptionsRejected = 2001,
@@ -216,8 +223,8 @@ export enum SeedcordErrorCode {
     CliConfigInvalidExport = 3101,
     /** No seedcord config file exists in the folder the CLI searched. */
     CliConfigNotFound = 3102,
-    /** The entry file does not exist. */
-    CliEntryNotFound = 3103,
+    /** The file that `instance` or `build.start` in the seedcord config points at does not exist. */
+    CliFileNotFound = 3103,
     /** The instance file's default export is not a constructed `Seedcord`. */
     CliInstanceInvalid = 3104,
     /** The bot threw during startup. */
@@ -260,7 +267,7 @@ export enum SeedcordErrorCode {
     CliConfigFileUnreadable = 3123,
     /** The CLI could not start the TypeScript compiler. */
     CliTypescriptNotStarted = 3124,
-    /** A config file sets a field this bot can't set, like `entry` on an edge bot or `port` on a server bot. */
+    /** A config file sets a field this bot can't set, like `entrypoint` in an edge bot's `cloudflare.config.ts`. */
     CliConfigFieldUnused = 3125,
     /** An edge bot's `compatibilityDate` is older than Cloudflare's Node compat default, and no flag turns it on. */
     CliEdgeCompatDateTooOld = 3126,
@@ -272,7 +279,7 @@ export enum SeedcordErrorCode {
     CliEdgeRootHoldsConfig = 3129,
     /** An edge build found commands in code that have no deployed id on Discord. */
     CliEdgeCommandsNotDeployed = 3130,
-    /** Something called the dev runtime before `start()` finished or after `stop()`, which is a bug in seedcord. */
+    /** Something called the dev runtime before `start()` finished or after `stop()`. This is a bug in seedcord. */
     CliDevRuntimeNotRunning = 3131,
     /** `seedcord commands deploy` ran on a bot whose `commands.path` is `null`. */
     CliDeployNoCommandsFolder = 3132,
@@ -288,6 +295,14 @@ export enum SeedcordErrorCode {
     CliEdgeNoWorker = 3137,
     /** The running `seedcord` is a different install from the project's own. */
     CliNotProjectInstall = 3138,
+    /** Vite's environments leave out the one seedcord runs the bot in. */
+    CliViteEnvironmentMissing = 3139,
+    /** A folder that `files` in `seedcord.config.ts` lists is missing or is a file. */
+    CliListedFolderUnusable = 3140,
+    /** Another `seedcord dev` already runs a bot on the same Discord application. */
+    CliDevAlreadyRunning = 3141,
+    /** The folder that holds the dev session locks belongs to another user. */
+    CliDevLockFolderNotOwned = 3142,
 
     /** A flag answers a question that the earlier answers skip. */
     CreateFlagNotApplicable = 3201,

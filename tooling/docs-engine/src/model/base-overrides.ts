@@ -1,7 +1,8 @@
 import { ApiAbstractMixin, ApiClass, ApiStaticMixin, type ApiItem } from '@microsoft/api-extractor-model';
+import { DocKind } from '@seedcord/docs-search';
 
 import { accessorRole } from '#model/adapter-helpers';
-import { apiKindToDocKind, DocKind } from '#model/kinds';
+import { apiKindToDocKind } from '#model/kinds';
 
 // a static never overrides an instance member
 function memberKey(member: ApiItem): string {

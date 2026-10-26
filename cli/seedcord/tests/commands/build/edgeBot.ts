@@ -7,7 +7,7 @@ import { Routes } from 'discord-api-types/v10';
 import { onTestFinished } from 'vite-plus/test';
 
 import { EdgeBuild } from '#commands/build/builder/EdgeBuild';
-import { ShellMode } from '#core/viteMode';
+import { ShellMode } from '#src/core/ShellMode';
 
 import { quickBuildRunner } from './quickBuildRunner';
 import { APP_ID, ED25519_KEY_BYTES, FAKE_TOKEN } from './smoke';
@@ -44,6 +44,19 @@ export async function copyEdgeBotForTest(): Promise<string> {
     onTestFinished(remove);
     return projectDir;
 }
+
+// the thrown error's message lists each file readFiles read in workerd, as name=hex.
+// node loads the same module during the build and in dev's codegen copy
+export const READ_IN_WORKERD = `import { readFiles } from '@seedcord/http';
+
+if (navigator.userAgent === 'Cloudflare-Workers') {
+    const read: string[] = [];
+    for await (const { fullPath, bytes } of readFiles('./locales')) {
+        read.push(\`\${fullPath.split('/').pop()}=\${bytes.toString('hex')}\`);
+    }
+    throw new Error(\`read \${read.join(' ')}\`);
+}
+`;
 
 const ANY_PUBLIC_KEY = 'ab'.repeat(ED25519_KEY_BYTES);
 

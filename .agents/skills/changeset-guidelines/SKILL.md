@@ -13,7 +13,7 @@ The shape is fixed, and `vp run lint:changesets` rejects anything else:
 
 - One paragraph on one line. No second paragraph, list, heading, quote, or code block.
 - At most two sentences for a patch and three otherwise. One sentence is fine when it already carries the reader's own case. A second sentence carries that case when the first one cannot.
-- `**BREAKING:**` plus a space opens the summary when the change breaks. The changeset bumps no package as a patch, and a `major` bump is only for a package already past 1.0.
+- `**BREAKING:**` plus a space opens the summary when the change breaks. The changeset bumps no package as a patch, and a `major` bump is only for a package already past 1.0. A `0.x` package goes to `1.0.0` with a `major` bump whose summary says `1.0.0`.
 
 ---
 

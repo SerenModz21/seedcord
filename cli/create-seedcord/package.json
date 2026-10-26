@@ -1,6 +1,6 @@
 {
     "name": "create-seedcord",
-    "version": "0.4.2",
+    "version": "0.5.0",
     "description": "Scaffold a new seedcord bot",
     "keywords": [
         "create",
@@ -10,10 +10,6 @@
         "seedcord",
         "starter"
     ],
-    "homepage": "https://seedcord.org",
-    "bugs": "https://github.com/seedcord/seedcord/issues",
-    "license": "Apache-2.0",
-    "author": "Dhruv <materwelondhruv@gmail.com> (https://materwelon.dev)",
     "repository": {
         "type": "git",
         "url": "https://github.com/seedcord/seedcord.git",
@@ -64,14 +60,14 @@
         "@seedcord/types": "workspace:^",
         "@seedcord/vitest-config": "workspace:^",
         "discord.js": "catalog:peer",
-        "handlebars": "^4.7.9",
+        "handlebars": "^4.7.10",
         "package-manager-detector": "^1.8.0",
         "typescript": "catalog:peer",
         "vitest": "catalog:test"
     },
     "engines": {
         "bun": ">=1.4.2",
-        "node": ">=24.11"
+        "node": "^24.22.1 || >=26.12.1"
     },
     "seedcordDocs": {
         "skip": true

@@ -3,9 +3,10 @@ import { notFound } from 'next/navigation';
 
 import { PageActions } from '#components/PageActions.tsx';
 import { PageNav } from '#components/PageNav.tsx';
-import { ANCHOR, ANCHOR_DROP, ANCHOR_SIZE, mdxComponents } from '#lib/mdxComponents.tsx';
+import { ANCHOR_DROP, ANCHOR_SIZE, mdxComponents } from '#lib/mdxComponents.tsx';
 import { guidePreview } from '#lib/linkPreview.ts';
 import { guideOrder } from '#lib/nav.ts';
+import { ANCHOR_REVEAL } from '@seedcord/ui/AnchoredHeading';
 import { PreviewCard } from '@seedcord/ui/LinkPreview';
 import { ComponentEmbed } from 'discord-component-embed/react';
 import { neighboursOf } from '#lib/neighbours.ts';
@@ -43,7 +44,7 @@ export default async function Page(props: PageParams): Promise<ReactNode> {
                         <CopyAnchorButton
                             label={page.data.title}
                             iconSize={ANCHOR_SIZE.h1}
-                            className={cn(ANCHOR, ANCHOR_DROP.h1)}
+                            className={cn(ANCHOR_REVEAL, ANCHOR_DROP.h1)}
                         />
                     </div>
                     {page.data.description ? (

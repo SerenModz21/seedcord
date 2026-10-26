@@ -3,7 +3,7 @@
   <p>Show your own card when someone shares your link on Discord.</p>
   <a href="https://github.com/seedcord/seedcord/blob/next/packages/discord-component-embed/CHANGELOG.md">Changelog</a> ·
   <a href="https://seedcord.org/docs/packages/discord-component-embed/latest">Reference</a> ·
-  <a href="https://discord.gg/DzFxY58WXf">Discord</a>
+  <a href="https://seedcord.org/chat/">Discord</a>
 </div>
 
 <br />
@@ -38,11 +38,11 @@
 
 ## About
 
-When someone pastes a link to your site into Discord, Discord fetches the page and builds a preview card from its Open Graph tags. A [component embed](https://github.com/discord/discord-api-docs/pull/8606) replaces that card with a layout made of Discord's message components: markdown, images, a gallery, an accent color, and link buttons. The card above is one.
+When someone pastes a link to your site into Discord, Discord fetches the page and builds a preview card from its Open Graph tags. A [component embed](https://docs.discord.com/developers/link-previews/component-embeds) replaces that card with a layout made of Discord's message components: markdown, images, a gallery, an accent color, and link buttons. The card above is one.
 
 You describe the card with JSX or with `h()`, in any framework or none. The package checks it against Discord's rules for the format, then writes the JSON Discord reads from your page.
 
-Discord marks link previews as subject to change. Until v1.0.0, a minor version of this package can break too.
+Discord marks link previews as subject to change. This library keeps up with those changes as they happen. Any breaking change will ship in a major version.
 
 <div align="right"><a href="#contents">back to top</a></div>
 
@@ -509,7 +509,7 @@ The [reference](https://seedcord.org/docs/packages/discord-component-embed/lates
 
 ## Errors
 
-Discord doesn't report an invalid payload anywhere. It shows the Open Graph card, or no preview at all for most payloads that break Discord's general component rules, like a bad `id`. So `toComponentEmbed`, `toComponentEmbedJson`, `toComponentEmbedScript`, `<ComponentEmbed>`, and `componentEmbedResponse` throw a [`ComponentEmbedError`](https://docs.seedcord.org/packages/discord-component-embed/latest/classes/component-embed-error) when:
+Discord doesn't report an invalid payload anywhere. It shows the Open Graph card, or no preview at all for most payloads that break Discord's general component rules, like a bad `id`. So `toComponentEmbed`, `toComponentEmbedJson`, `toComponentEmbedScript`, `<ComponentEmbed>`, and `componentEmbedResponse` throw a [`ComponentEmbedError`](https://seedcord.org/docs/packages/discord-component-embed/latest/classes/component-embed-error) when:
 
 - the root is anything other than one `Container`
 - a component is somewhere it isn't allowed, or text is outside a `TextDisplay`

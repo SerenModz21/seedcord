@@ -12,6 +12,7 @@ import {
     type ApiPackage
 } from '@microsoft/api-extractor-model';
 import { RuntimeBuild } from '@seedcord/docs-generator/runtime-build';
+import { DocKind } from '@seedcord/docs-search';
 
 import {
     accessorHasSetter,
@@ -36,7 +37,7 @@ import { overridableBaseKeys, overridesBaseMember } from '#model/base-overrides'
 import { canonicalKey } from '#model/canonical-ref';
 import { excerptToInlineType } from '#model/excerpt-renderer';
 import { buildFlags, type DerivedFlagBits } from '#model/flags';
-import { apiKindToDocKind, DocKind, frozenKindLabel } from '#model/kinds';
+import { apiKindToDocKind, frozenKindLabel } from '#model/kinds';
 import { createLinkResolver } from '#model/link-resolver';
 import { NodeNumbering } from '#model/NodeNumbering';
 import { entryMembers } from '#model/PackageTree';

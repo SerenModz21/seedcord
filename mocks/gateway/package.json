@@ -1,6 +1,6 @@
 {
     "name": "@seedcord/mock-gateway",
-    "version": "0.2.34",
+    "version": "0.2.35",
     "private": true,
     "description": "Gateway-transport mock bot for demonstration and testing",
     "repository": {
@@ -37,6 +37,6 @@
         "typescript": "catalog:peer"
     },
     "engines": {
-        "node": ">=24.11"
+        "node": "^24.22.1 || >=26.12.1"
     }
 }

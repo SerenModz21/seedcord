@@ -5,7 +5,7 @@ import { describe, expect, it } from 'vite-plus/test';
 
 import { BuildRunner } from '#commands/build/BuildRunner';
 import { quietSteps } from '#core/output/quietSteps';
-import { ShellMode } from '#core/viteMode';
+import { ShellMode } from '#src/core/ShellMode';
 
 const BAD_FOLDERS_BOT = join(import.meta.dirname, '../../fixtures/bad-folders-bot');
 
@@ -15,7 +15,8 @@ describe('seedcord build on a bot with several bad folders', () => {
             code: SeedcordErrorCode.CliProblems,
             errors: [
                 expect.objectContaining({ code: SeedcordErrorCode.CorePathOutsideRoot }),
-                expect.objectContaining({ code: SeedcordErrorCode.CorePathOutsideRoot })
+                expect.objectContaining({ code: SeedcordErrorCode.CorePathOutsideRoot }),
+                expect.objectContaining({ code: SeedcordErrorCode.CoreDirectorySkipped })
             ]
         });
     }, 120_000);

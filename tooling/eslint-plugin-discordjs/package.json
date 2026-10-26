@@ -1,6 +1,6 @@
 {
     "name": "eslint-plugin-discordjs",
-    "version": "0.1.7",
+    "version": "0.2.0",
     "description": "ESLint rules for discord.js bots",
     "keywords": [
         "discord-bot",
@@ -72,6 +72,6 @@
     },
     "engines": {
         "bun": ">=1.4.2",
-        "node": ">=24.11"
+        "node": "^24.22.1 || >=26.12.1"
     }
 }

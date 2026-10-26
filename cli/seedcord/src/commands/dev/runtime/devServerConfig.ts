@@ -1,35 +1,35 @@
-import { dirname, resolve } from 'node:path';
+import { dirname } from 'node:path';
 
-import { isInside, moduleGlobs, posixRelative } from '@seedcord/utils/node/internal';
+import { posixRelative, toPosixPath } from '@seedcord/utils/internal';
+import { minimatch } from 'minimatch';
 
-import { WORKER_ENVIRONMENT } from '#core/modules/cloudflarePlugin';
-import { seedcordDependents } from '#core/modules/seedcordDependents';
-import { mergeViteConfig, NODE_CONDITIONS, userCodeConfig, WORKERD_CONDITIONS } from '#core/modules/userCodeConfig';
-import { watchedPath } from '#core/project/watchedPath';
+import { BOT_ENVIRONMENT } from '#core/modules/botEnvironment';
+import { mergeViteConfig, NODE_CONDITIONS, userCodeBase, userCodeConfig } from '#core/modules/userCodeConfig';
 import { STATE_FOLDER } from '#core/state/StateFolder';
 
 import { workerLogger } from './workerLogger';
 
 import type { ResolvedSeedcordConfig } from '#core/config/schema';
-import type { InlineConfig } from 'vite';
+import type { BotLayout } from '@seedcord/utils/internal';
+import type { InlineConfig, ServerOptions, UserConfig } from 'vite';
 
-type DevConfigPaths = Pick<ResolvedSeedcordConfig, 'root' | 'configFile'>;
+// a linked workspace package lives outside root
+const OUTSIDE_ROOT_IGNORES = ['node_modules', 'dist', '.git', STATE_FOLDER].map((folder) => `**/${folder}{,/**}`);
 
-// a **/logs/** glob would also swallow a source directory named logs
-// WinstonFileSink writes logs/ under the cwd
-function logsIgnore(cwd: string): (path: string) => boolean {
-    const logs = resolve(watchedPath(cwd), 'logs');
-
-    return (path) => isInside(logs, path);
+export function devWatchOptions(layout: BotLayout): NonNullable<ServerOptions['watch']> {
+    const ignored = (file: string): boolean => {
+        // HmrPlugin asks for a restart when one changes
+        if (layout.isProjectFile(file)) return false;
+        if (layout.isSkipped(file)) return true;
+        const posix = toPosixPath(file);
+        return !layout.holds(file) && OUTSIDE_ROOT_IGNORES.some((pattern) => minimatch(posix, pattern, { dot: true }));
+    };
+    return { ignored };
 }
 
 // vite writes resolved options back into the config object it receives
-function devViteConfig(
-    conditions: Parameters<typeof userCodeConfig>[0],
-    config: DevConfigPaths,
-    cwd: string
-): InlineConfig {
-    return mergeViteConfig(userCodeConfig(conditions), {
+function devViteConfig(base: UserConfig, layout: BotLayout): InlineConfig {
+    return mergeViteConfig(base, {
         // vite searches its own root for a config file
         configFile: false,
         clearScreen: false,
@@ -37,33 +37,33 @@ function devViteConfig(
             middlewareMode: true,
             // no browser connects to vite's hmr socket on port 24678
             ws: false,
-            watch: {
-                ignored: ['**/node_modules/**', '**/dist/**', '**/.git/**', `**/${STATE_FOLDER}/**`, logsIgnore(cwd)]
-            }
-        },
-        // an external plugin would load node's copy of @seedcord/core beside vite's
-        ssr: { noExternal: seedcordDependents(dirname(config.configFile)) }
+            watch: devWatchOptions(layout)
+        }
     });
 }
 
-export function serverViteConfig(config: DevConfigPaths, cwd: string): InlineConfig {
-    return mergeViteConfig(devViteConfig(NODE_CONDITIONS, config, cwd), {
-        root: dirname(config.configFile),
+export function serverViteConfig(
+    { configFile }: Pick<ResolvedSeedcordConfig, 'configFile'>,
+    layout: BotLayout
+): InlineConfig {
+    const configDir = dirname(configFile);
+    return mergeViteConfig(devViteConfig(userCodeConfig(NODE_CONDITIONS, configDir), layout), {
+        root: configDir,
         logLevel: 'error'
     });
 }
 
-export function edgeViteConfig(config: DevConfigPaths, viteRoot: string, cwd: string): InlineConfig {
-    return mergeViteConfig(devViteConfig(WORKERD_CONDITIONS, config, cwd), {
+export function edgeViteConfig(layout: BotLayout, viteRoot: string): InlineConfig {
+    return mergeViteConfig(devViteConfig(userCodeBase(), layout), {
         root: viteRoot,
         customLogger: workerLogger(),
         // discord's POST arrives under the tunnel's hostname. the endpoint blocks every other request
         server: { allowedHosts: true },
         // the plugin's dep scan finds nothing in a virtual main. vite then reloads mid-start and leaves a second envapt with no source bound
         environments: {
-            [WORKER_ENVIRONMENT]: {
+            [BOT_ENVIRONMENT]: {
                 // a glob reads a windows separator as an escape
-                optimizeDeps: { entries: moduleGlobs(posixRelative(viteRoot, config.root) || '.') }
+                optimizeDeps: { entries: layout.moduleGlobs(posixRelative(viteRoot, layout.root) || '.') }
             }
         }
     });

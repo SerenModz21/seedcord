@@ -1,6 +1,6 @@
 {
     "name": "seedcord",
-    "version": "0.21.5",
+    "version": "0.22.0",
     "description": "The seedcord CLI. Dev server, build, and codegen for a typed Discord bot.",
     "keywords": [
         "cli",
@@ -87,10 +87,12 @@
         "commander": "^15.0.0",
         "discord-api-types": "catalog:deps",
         "ink": "catalog:deps",
-        "ink-spinner": "^5.0.0",
         "minimatch": "^10.2.6",
         "react": "catalog:react",
         "reflect-metadata": "catalog:deps",
+        "rolldown": "~1.2.12",
+        "rolldown-plugin-dts": "0.28.8",
+        "verkit": "catalog:deps",
         "wrap-ansi": "^10.0.0"
     },
     "devDependencies": {
@@ -110,6 +112,7 @@
         "eslint-plugin-react-hooks": "catalog:eslint",
         "ink-testing-library": "^4.0.0",
         "tsx": "catalog:deps",
+        "type-fest": "catalog:deps",
         "typescript": "catalog:peer",
         "vite": "catalog:deps",
         "vitest": "catalog:test"
@@ -127,6 +130,6 @@
     },
     "engines": {
         "bun": ">=1.4.2",
-        "node": ">=24.11"
+        "node": "^24.22.1 || >=26.12.1"
     }
 }

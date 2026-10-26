@@ -216,6 +216,7 @@ A TSDoc block needs a caller who would read the signature and still guess wrong.
 - Anything reachable only through a package's `./internal` entry gets a `//` line or nothing. Read the `exports` map in `package.json` to tell.
 - `@returns Whether the check passed` next to a declared `boolean` repeats the signature. Delete the tag. When every tag on a block does this, delete the block.
 - A tag earns its place by mapping inputs to outcomes the types cannot express, for example which of `undefined`, `true`, and an object produces which result.
+- Every error a public symbol documents goes in its own `@throws` tag: the error class, then the condition. Two classes or two unrelated conditions get two tags. A throw mentioned in the description or in a `@param` is easy to miss, so move it into a tag.
 - Skip `@internal` on a member when the whole class is already internal. The entry map states it and no consumer reads the tag.
 
 ---
@@ -227,7 +228,7 @@ A TSDoc block needs a caller who would read the signature and still guess wrong.
 - A comment explaining a type that sits two lines above. Fix the type name.
 - Per-overload captions. One block on the implementation signature covers the family.
 - Commented-out code.
-- A comment naming a symbol that no longer exists. Every refactor leaves these. Grep the names you removed.
+- A comment naming a symbol that no longer exists. Every refactor leaves these. Grep the names you removed. A function that exists is fine to name, and it is often the clearest subject a comment has.
 - Bug history tied to one incident, unless the incident is the reason the code is shaped that way.
 
 ---

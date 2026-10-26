@@ -5,9 +5,9 @@ import { ProjectLoader } from '#core/config/ProjectLoader';
 import { importInstance } from '#core/modules/importInstance';
 import { openModuleLoader } from '#core/modules/openModuleLoader';
 import { printResolvedConfig } from '#core/output/printResolvedConfig';
-import { startupShell } from '#core/viteMode';
+import { startupShell } from '#src/core/ShellMode';
 
-import { assertFoldersUnderRoot } from './builder/assertFoldersUnderRoot';
+import { assertFoldersBundled } from './builder/assertFoldersBundled';
 import { checkBuildTarget, targetBuildFor } from './builder/targetBuildFor';
 import { TypeChecker } from './builder/TypeChecker';
 
@@ -16,7 +16,7 @@ import type { Project } from '#core/project/Project';
 import type { BundleStats } from './builder/output';
 import type { NextCommand } from './builder/TargetBuild';
 import type { Build } from './builder/targetBuildFor';
-import type { BotConfig } from '@seedcord/types';
+import type { SeedcordInstance } from '@seedcord/types/internal';
 
 export const BUILD_STEPS = [
     'read config',
@@ -25,6 +25,7 @@ export const BUILD_STEPS = [
     'type check',
     'read discord',
     'bundle',
+    'write types',
     'boot'
 ] as const;
 export type BuildStep = (typeof BUILD_STEPS)[number];
@@ -71,7 +72,7 @@ export class BuildRunner {
 
         const instance = await steps.step('load bot', async () => {
             const loaded = await importInstance(modules, config.instance);
-            assertFoldersUnderRoot(loaded.config, project);
+            assertFoldersBundled(loaded.config, project);
             return loaded;
         });
         await steps.step(
@@ -79,18 +80,20 @@ export class BuildRunner {
             () => typeChecker.check(project),
             ({ tsconfig }) => paint.path(tsconfig)
         );
-        const bundle = await this.bundle(build, instance.config.bot);
+        const bundle = await this.bundle(build, instance);
+        const writeTypes = build.writeTypes?.bind(build);
+        if (writeTypes) await steps.step('write types', writeTypes);
         const boot = build.boot?.bind(build);
         if (boot) await steps.step('boot', boot);
 
         return { bundle, nextCommands: build.nextCommands(bundle) };
     }
 
-    private async bundle(build: Build, bot: BotConfig): Promise<BundleStats> {
+    private async bundle(build: Build, instance: SeedcordInstance): Promise<BundleStats> {
         const { steps } = this.deps;
         if (build.kind === 'server') return steps.step('bundle', () => build.bundle());
 
-        const ids = await steps.step('read discord', () => build.readDiscord(bot));
+        const ids = await steps.step('read discord', () => build.readDiscord(instance));
         return steps.step('bundle', () => build.bundle(ids));
     }
 }

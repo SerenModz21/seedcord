@@ -1,12 +1,15 @@
 import { BAKED_IDS_KEY } from '@seedcord/core/internal';
 import { assertNever } from '@seedcord/utils';
-import { workerdPath } from '@seedcord/utils/node/internal';
+import { workerdPath } from '@seedcord/utils/internal';
 
-import { builtFilesSource } from './builtFiles';
+import { envBootstrapSource } from '#core/modules/envBootstrap';
 
-import type { ProjectFiles } from '#core/project/ProjectFiles';
+import { builtFilesSource, loadListedFiles, PLACEHOLDER_ROOT } from './builtFiles';
+
+import type { EntryPlugins } from './builtFiles';
 import type { PluginConfig } from '@cloudflare/vite-plugin';
 import type { BakedIds } from '@seedcord/core/internal';
+import type { BotLayout } from '@seedcord/utils/internal';
 import type { Plugin } from 'vite';
 
 const WORKER_ENTRY_ID = 'virtual:seedcord/worker';
@@ -20,15 +23,6 @@ const BIND_ENV_ID = 'virtual:seedcord/bind-env';
 const BUILT_FILES_ID = 'virtual:seedcord/built-files';
 const BAKED_IDS_ID = 'virtual:seedcord/baked-ids';
 
-// workerd has no filesystem behind this path
-const WORKER_ROOT = '/bot';
-
-// envapt's workerd build throws on a read until something binds a source
-const BIND_ENV = `import { env } from 'cloudflare:workers';
-import { Envapter, PortableSource } from 'envapt';
-Envapter.useSource(new PortableSource(env));
-`;
-
 const CWD_ID = 'virtual:seedcord/cwd';
 
 // workerd returns /bundle from process.cwd(). paint.path and the file loaders print paths relative to it
@@ -40,7 +34,7 @@ function cwdSource(cwd: string): string {
 type EntryMode = { kind: 'build'; ids: BakedIds } | { kind: 'dev'; root: string; cwd: string };
 
 interface WorkerEntryOptions {
-    files: ProjectFiles;
+    layout: BotLayout;
     folders: string[];
     instanceKey: string;
     rootKey: string;
@@ -68,8 +62,8 @@ function modeSetup(mode: EntryMode): ModeSetup {
         }
         case 'build': {
             return {
-                root: WORKER_ROOT,
-                cwd: WORKER_ROOT,
+                root: PLACEHOLDER_ROOT,
+                cwd: PLACEHOLDER_ROOT,
                 sourcePaths: false,
                 modules: [[BAKED_IDS_ID, bakedIdsSource(mode.ids)]]
             };
@@ -81,15 +75,15 @@ function modeSetup(mode: EntryMode): ModeSetup {
 }
 
 // the entry imports these in order, ahead of the instance file
-function setupSources({ files, folders, rootKey, mode }: WorkerEntryOptions): Map<string, string> {
+function setupSources({ layout, folders, rootKey, mode }: WorkerEntryOptions): Map<string, string> {
     const { root, cwd, sourcePaths, modules } = modeSetup(mode);
     const rootExpression = JSON.stringify(root);
     return new Map([
         [CWD_ID, cwdSource(cwd)],
         ...modules,
         // the instance file may read env while it loads
-        [BIND_ENV_ID, BIND_ENV],
-        [BUILT_FILES_ID, builtFilesSource({ files, folders, rootExpression, rootKey, sourcePaths })]
+        [BIND_ENV_ID, envBootstrapSource({ runtime: 'worker' })],
+        [BUILT_FILES_ID, builtFilesSource({ layout, folders, rootExpression, rootKey, sourcePaths })]
     ]);
 }
 
@@ -123,9 +117,9 @@ async function entrySource(
     return [...lines, ''].join('\n');
 }
 
-export function workerEntry(options: WorkerEntryOptions): Plugin {
+export function workerEntry(options: WorkerEntryOptions): EntryPlugins {
     const setup = setupSources(options);
-    return {
+    const entry: Plugin = {
         name: WORKER_ENTRY_ID,
         resolveId: (id) => (id === WORKER_ENTRY_ID || setup.has(id) ? `\0${id}` : undefined),
         load: (id) => {
@@ -133,4 +127,5 @@ export function workerEntry(options: WorkerEntryOptions): Plugin {
             return id.startsWith('\0') ? setup.get(id.slice(1)) : undefined;
         }
     };
+    return [entry, loadListedFiles()];
 }

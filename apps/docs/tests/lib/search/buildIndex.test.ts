@@ -1,9 +1,10 @@
-import { DocKind as Kind } from '@seedcord/docs-engine/client';
+import { DocKind as Kind } from '@seedcord/docs-search';
 import { beforeEach, describe, expect, it, vi } from 'vite-plus/test';
 
 import { searchIndexFor, searchPackages } from '#lib/search/buildIndex';
 
-import type { DocNode, DocSearchEntry, PackageIndexEntry } from '@seedcord/docs-engine';
+import type { DocNode, PackageIndexEntry } from '@seedcord/docs-engine';
+import type { DocSearchEntry } from '@seedcord/docs-search';
 
 function stableAt(latest: string): PackageIndexEntry['stable'] {
     const [major = '0', minor = '0'] = latest.split('.');

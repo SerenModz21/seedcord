@@ -1,7 +1,7 @@
+import { DocKind } from '@seedcord/docs-search';
 import { describe, expect, it } from 'vite-plus/test';
 
 import { buildPackageFromModel } from '#builders/package-builder';
-import { DocKind } from '#model/kinds';
 
 import type { DocFlags, DocManifestPackage, DocNode } from '#src/types';
 

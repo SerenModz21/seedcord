@@ -14,6 +14,7 @@ export type { InteractionMiddlewareMetadata } from '#decorators/middleware';
 export { interactionMiddleware, MiddlewareRegistry } from '#src/dispatch/MiddlewareRegistry';
 export type { MiddlewareRegistration, MiddlewareRegistrationOf } from '#src/dispatch/MiddlewareRegistry';
 export { bindBotColor } from '#components/botColorHolder';
+export { logUnknownFault } from '#src/notices/logUnknownFault';
 
 export { FixedScope } from '#src/plugin/Plugin';
 export type { PluginArgs, PluginCtor } from '#src/plugin/Plugin';
@@ -36,6 +37,8 @@ export type { GateObserver } from '#gates/runGates';
 export { accessorStore, clearStore, guardedAccessor } from '#src/miscellaneous/guarded';
 export { isEmojiTuple } from '#src/miscellaneous/emojiConfig';
 export { currentApplication } from '#src/miscellaneous/currentApplication';
+export { readBotToken } from '#src/miscellaneous/readBotToken';
+export { bindEnv } from '#src/miscellaneous/bindViteEnv';
 export { resolveEmojis } from '#src/miscellaneous/resolveEmojis';
 
 export { BAKED_IDS_KEY, type BakedIds } from '#src/bakedIds';

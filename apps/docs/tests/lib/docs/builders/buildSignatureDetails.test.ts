@@ -1,4 +1,4 @@
-import { DocKind } from '@seedcord/docs-engine';
+import { DocKind } from '@seedcord/docs-search';
 import { describe, expect, it, vi } from 'vite-plus/test';
 
 import type { CommentParagraph, FormatContext, FormattedComment } from '#lib/docs/types';

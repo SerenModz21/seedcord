@@ -1,6 +1,6 @@
 {
     "name": "@seedcord/types",
-    "version": "0.14.4",
+    "version": "0.15.0",
     "description": "Config shapes and shared types for seedcord bots",
     "keywords": [
         "discord-bot",
@@ -58,6 +58,7 @@
         "coverage": "vp test run --coverage"
     },
     "dependencies": {
+        "@discordjs/rest": "catalog:deps",
         "discord-api-types": "catalog:deps"
     },
     "devDependencies": {
@@ -74,6 +75,6 @@
     },
     "engines": {
         "bun": ">=1.4.2",
-        "node": ">=24.11"
+        "node": "^24.22.1 || >=26.12.1"
     }
 }

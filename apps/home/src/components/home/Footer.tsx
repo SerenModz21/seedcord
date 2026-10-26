@@ -1,7 +1,11 @@
 import { cn } from '@seedcord/ui';
 import { Materwelon } from '@seedcord/ui/Materwelon';
+import { skillUrl } from '@seedcord/ui/skills';
+import { SEEDCORD_SKILL } from '@seedcord/ui/skills/seedcord';
 import Link from 'next/link';
 
+import { SiteLink } from '#components/ui/SiteLink.tsx';
+import { BLOG_PATH } from '#lib/blog/paths.ts';
 import {
     AUTHOR_GITHUB_URL,
     AUTHOR_URL,
@@ -20,6 +24,7 @@ const COLUMNS = [
         title: 'Documentation',
         links: [
             { label: 'API reference', href: DOCS_URL },
+            { label: 'Agent skill', href: skillUrl(SEEDCORD_SKILL) },
             { label: 'Guide', href: GUIDE_URL }
         ]
     },
@@ -34,10 +39,11 @@ const COLUMNS = [
     {
         title: 'Project',
         links: [
-            { label: 'Roadmap', href: ROADMAP_URL },
             { label: 'Releases', href: `${REPO_URL}/releases` },
+            { label: 'Roadmap', href: ROADMAP_URL },
             { label: 'License', href: `${REPO_URL}/blob/main/LICENSE` },
-            { label: 'Issues', href: `${REPO_URL}/issues` }
+            { label: 'Issues', href: `${REPO_URL}/issues` },
+            { label: 'Blog', href: BLOG_PATH }
         ]
     }
 ] as const;
@@ -56,15 +62,13 @@ function LinkColumn({ column }: { column: (typeof COLUMNS)[number] }): ReactNode
             </span>
             <div className={cn('flex flex-wrap gap-x-4 gap-y-1.5 lg:contents')}>
                 {column.links.map((l) => (
-                    <Link
+                    <SiteLink
                         key={l.label}
                         href={l.href}
-                        target="_blank"
-                        rel="noreferrer"
                         className={cn('text-sm font-medium text-(--seed-dark) transition-colors hover:text-(--flesh)')}
                     >
                         {l.label}
-                    </Link>
+                    </SiteLink>
                 ))}
             </div>
         </nav>
@@ -100,23 +104,19 @@ export function Footer(): ReactNode {
                 <div className={cn('mx-auto max-w-(--shell-max) px-5 py-6')}>
                     <p className={cn('font-mono-code text-xs text-(--seed-dark)/70')}>
                         Built by{' '}
-                        <Link
+                        <SiteLink
                             href={AUTHOR_URL}
-                            target="_blank"
-                            rel="noreferrer"
                             className={cn('font-semibold text-(--seed-dark) transition-colors hover:text-(--flesh)')}
                         >
                             materwelonDhruv
-                        </Link>
+                        </SiteLink>
                         {' · '}
-                        <Link
+                        <SiteLink
                             href={AUTHOR_GITHUB_URL}
-                            target="_blank"
-                            rel="noreferrer"
                             className={cn('text-(--seed-dark) transition-colors hover:text-(--flesh)')}
                         >
                             GitHub
-                        </Link>
+                        </SiteLink>
                     </p>
                 </div>
             </div>

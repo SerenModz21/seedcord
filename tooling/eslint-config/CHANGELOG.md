@@ -1,5 +1,21 @@
 # @seedcord/eslint-config
 
+## 3.0.0
+
+### 💥 Breaking
+
+- Requires Node 24.22.1+ on 24.x or Node 26.12.1+ for the October 2026 security fixes. ([`cc7930b`](https://github.com/seedcord/seedcord/commit/cc7930b810b17be66cff49c6cd793b199ef752a3))
+
+### 🩹 Patch
+
+- `import-x/no-unresolved` now accepts `import { env } from 'cloudflare:workers'` in an edge bot. ([`bc61e18`](https://github.com/seedcord/seedcord/commit/bc61e187e29ead4b922bc935b5ef77b024fe10ec))
+- Fixed every file failing to lint with `Cannot find module '@typescript-eslint/parser'` when your package manager didn't hoist that parser, like pnpm with `hoist: false`. ([`3e83530`](https://github.com/seedcord/seedcord/commit/3e83530bc30902092b9bbdb460784d326df505dd))
+
+#### 📦 Seedcord packages
+
+- `eslint-plugin-discordjs` 0.1.8-next.0 → 0.2.0
+- `@seedcord/eslint-plugin` 0.4.4-next.0 → 0.5.0
+
 ## 2.5.0
 
 ### ✨ Minor

@@ -1,6 +1,6 @@
 import { llmsFull } from '#lib/agents.ts';
 import { source } from '#lib/source.ts';
-import { twinDocument } from '#lib/twin.ts';
+import { twinDocument } from '@seedcord/ui/twin';
 
 export const dynamic = 'force-static';
 

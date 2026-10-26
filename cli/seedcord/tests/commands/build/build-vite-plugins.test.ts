@@ -15,7 +15,7 @@ describe('seedcord build with vitePlugins', () => {
         const projectDir = await copyFixture(GATEWAY_BOT);
         await writeFile(
             join(projectDir, 'seedcord.config.ts'),
-            configWithGreetingPlugin("root: './src', instance: './bot.ts', entry: './index.ts'")
+            configWithGreetingPlugin("root: './src', instance: './bot.ts', build: { start: './index.ts' }")
         );
         await writeFile(join(projectDir, 'src/probe.ts'), GREETING_PROBE);
 
@@ -42,8 +42,8 @@ describe('seedcord build with vitePlugins', () => {
 export default {
     root: './src',
     instance: './bot.ts',
-    entry: './index.ts',
-    vitePlugins: [{ name: 'breaks-the-build', ${hooks} }]
+    build: { start: './index.ts' },
+    vitePlugins: () => [{ name: 'breaks-the-build', ${hooks} }]
 };
 `
             );
@@ -68,7 +68,7 @@ export default {
 export default {
     root: './src',
     instance: './bot.ts',
-    vitePlugins: [
+    vitePlugins: () => [
         {
             name: 'breaks-the-worker',
             configResolved: (config) => { command = config.command; },

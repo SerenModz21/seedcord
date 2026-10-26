@@ -1,6 +1,6 @@
 {
     "name": "@seedcord/docs",
-    "version": "0.1.18",
+    "version": "0.1.20",
     "private": true,
     "type": "module",
     "imports": {
@@ -26,8 +26,8 @@
     "dependencies": {
         "@seedcord/docs-engine": "workspace:^",
         "@seedcord/docs-generator": "workspace:^",
+        "@seedcord/docs-search": "workspace:^",
         "@seedcord/eslint-config": "workspace:^",
-        "@seedcord/types": "workspace:^",
         "@seedcord/ui": "workspace:^",
         "@tailwindcss/postcss": "catalog:deps",
         "discord-component-embed": "workspace:^",
@@ -42,7 +42,6 @@
         "prettier": "catalog:deps",
         "react": "catalog:react",
         "react-dom": "catalog:react",
-        "shiki": "catalog:deps",
         "tailwindcss": "catalog:deps",
         "takumi-js": "catalog:deps",
         "type-fest": "catalog:deps",
@@ -60,7 +59,6 @@
         "eslint": "^9.39.4",
         "eslint-config-next": "catalog:eslint",
         "eslint-plugin-better-tailwindcss": "catalog:eslint",
-        "eslint-plugin-react-compiler": "catalog:eslint",
         "eslint-plugin-tailwind-canonical-classes": "catalog:eslint",
         "jsdom": "catalog:test",
         "prettier-plugin-tailwindcss": "catalog:deps",
@@ -69,6 +67,6 @@
         "wrangler": "catalog:peer"
     },
     "engines": {
-        "node": ">=24.11"
+        "node": "^24.22.1 || >=26.12.1"
     }
 }

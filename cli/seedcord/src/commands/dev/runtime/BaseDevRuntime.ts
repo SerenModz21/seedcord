@@ -1,18 +1,20 @@
 import { SeedcordErrorCode } from '@seedcord/errors';
 import { SeedcordError } from '@seedcord/errors/internal';
-import { setBotRoot } from '@seedcord/utils/node/internal';
+import { setDevFiles } from '@seedcord/utils/internal';
+
+import { instanceModule } from '#core/modules/importInstance';
 
 import { HmrPlugin } from './HmrPlugin';
-import { ViteRestartFiles } from './ViteRestartFiles';
+import { RestartFiles } from './RestartFiles';
 
-import type { RunnerModuleLoader } from '#core/modules/RunnerModuleLoader';
+import type { ModuleLoader } from '#core/modules/ModuleLoader';
 import type { DevRuntime, DevRuntimeContext, DevRuntimeLoadResult } from './DevRuntime';
 import type { DevEvent } from './events';
 import type { SeedcordInstance } from '@seedcord/types/internal';
 
 export interface StartedRuntime {
     readonly context: DevRuntimeContext;
-    readonly modules: RunnerModuleLoader;
+    readonly modules: ModuleLoader;
     readonly hmr: HmrPlugin;
     readonly resources: AsyncDisposableStack;
 }
@@ -36,8 +38,7 @@ export abstract class BaseDevRuntime<TStarted extends StartedRuntime = StartedRu
     private async openWithCleanup(context: DevRuntimeContext): Promise<TStarted> {
         const resources = new AsyncDisposableStack();
         try {
-            setBotRoot(context.config.root);
-            resources.defer(() => setBotRoot(undefined));
+            resources.use(setDevFiles(context.files.layout.toJSON()));
             return await this.open(context, resources);
         } catch (error: unknown) {
             await resources.disposeAsync();
@@ -51,7 +52,7 @@ export abstract class BaseDevRuntime<TStarted extends StartedRuntime = StartedRu
 
     public async loadEntry(): Promise<DevRuntimeLoadResult> {
         const { context, modules } = this.require('loadEntry');
-        return { module: await modules.importModule(context.config.instance) };
+        return { module: await instanceModule(modules, context.config.instance) };
     }
 
     public refreshCommands(shouldRefresh: boolean): void {
@@ -85,7 +86,7 @@ export abstract class BaseDevRuntime<TStarted extends StartedRuntime = StartedRu
         resources: AsyncDisposableStack,
         targetRestartFiles: readonly string[] = []
     ): HmrPlugin {
-        const restartFiles = ViteRestartFiles.forConfig(context.config, targetRestartFiles);
+        const restartFiles = new RestartFiles(context.config, context.files.layout, targetRestartFiles);
         const hmr = new HmrPlugin(context.config, context.state, environment, restartFiles);
         hmr.on('event', (event) => this.emit(context, event));
         // a restart builds a new runtime in the same process

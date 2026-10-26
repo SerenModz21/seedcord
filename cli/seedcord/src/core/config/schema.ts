@@ -1,6 +1,8 @@
+import type { RealPath } from '#core/project/realPath';
 import type { EdgeTarget, ServerTarget } from './detectTarget';
+import type { VitePlugins } from './vitePlugins';
 import type { TypedOmit } from '@seedcord/types';
-import type { Plugin, PluginOption } from 'vite';
+import type { PluginOption } from 'vite';
 
 /**
  * Build options every bot takes. An edge bot takes only these, because `@cloudflare/vite-plugin`
@@ -25,6 +27,11 @@ export interface SeedcordBuildConfig extends SeedcordBaseBuildConfig {
      * @defaultValue `./dist` relative to the config directory
      */
     outDir?: string;
+    /**
+     * The file that starts the bot, the one that calls `start()`. The build's `index.mjs` runs it.
+     * Without it, `index.mjs` default exports the bot for your own node server to import and start.
+     */
+    start?: string;
 }
 
 /**
@@ -66,7 +73,7 @@ export interface SeedcordHmrConfig {
 
 /**
  * The `seedcord.config.ts` of a bot that runs on Cloudflare Workers. A bot that runs on node or
- * bun uses {@link SeedcordServerConfig}, the same fields plus `entry`.
+ * bun uses {@link SeedcordServerConfig}. Its `build` also takes `outDir` and `start`.
  */
 export interface SeedcordConfig {
     /**
@@ -79,6 +86,14 @@ export interface SeedcordConfig {
      * Path to the module whose default export is a configured `Seedcord` instance.
      */
     instance: string;
+    /**
+     * Folders whose non-code files `seedcord build` bundles for `readFiles` to read, like `['./locales']`.
+     * Each one includes its subfolders and resolves against `root`. A folder can sit beside `root`, like `'../assets'`
+     * with `root: './src'`, as long as it is inside the folder that holds this config.
+     *
+     * @defaultValue `[]`
+     */
+    files?: string[];
     /**
      * How `seedcord dev` exposes an http bot's interactions server. This has no effect on a gateway bot.
      *
@@ -112,21 +127,17 @@ export interface SeedcordConfig {
      */
     hmr?: SeedcordHmrConfig;
     /**
-     * Vite plugins that run on your bot's code in every `seedcord` command that loads it. They change
-     * what an import loads, like turning a `.yaml` file into an object. A seedcord plugin goes on your
-     * bot with `attach`, in the file `instance` points at.
+     * A function that returns the Vite plugins to run on your bot's code in every `seedcord` command
+     * that loads it, like `() => [yaml()]`. They change what an import loads, like turning a `.yaml`
+     * file into an object. seedcord calls it once for each Vite server and build.
      */
-    vitePlugins?: PluginOption[];
+    vitePlugins?: () => PluginOption[];
 }
 
 /**
  * The `seedcord.config.ts` of a bot that runs on node or bun.
  */
 export interface SeedcordServerConfig extends SeedcordConfig {
-    /**
-     * The file that starts the bot, the one that calls `start()`.
-     */
-    entry: string;
     /**
      * Optional build configuration overrides.
      */
@@ -141,23 +152,25 @@ export type ResolvedTunnel = { mode: 'off' } | { mode: 'quick' } | { mode: 'url'
 
 export type ResolvedEdgeTarget = EdgeTarget & { port: number };
 
-export type ResolvedServerTarget = ServerTarget & { entry: string; outDir: string };
+export type ResolvedServerTarget = ServerTarget & { start: RealPath | undefined; outDir: RealPath };
 
 export type ResolvedTarget = ResolvedServerTarget | ResolvedEdgeTarget;
 
-export type ResolvedTypecheck = { enabled: false } | { enabled: true; tsconfig?: string };
+export type ResolvedTypecheck = { enabled: false } | { enabled: true; tsconfig?: RealPath };
 
 export interface ResolvedSeedcordBuildConfig {
-    tsconfig?: string;
+    tsconfig?: RealPath;
 }
 
-// every path in here is absolute
 export interface ResolvedSeedcordConfig extends Required<
-    TypedOmit<SeedcordConfig, 'build' | 'hmr' | 'tunnel' | 'port' | 'vitePlugins'>
+    TypedOmit<SeedcordConfig, 'build' | 'hmr' | 'tunnel' | 'port' | 'vitePlugins' | 'root' | 'instance' | 'files'>
 > {
+    root: RealPath;
+    instance: RealPath;
+    files: RealPath[];
     tunnel: ResolvedTunnel;
-    vitePlugins: Plugin[];
-    configFile: string;
+    vitePlugins: VitePlugins;
+    configFile: RealPath;
     target: ResolvedTarget;
     build: ResolvedSeedcordBuildConfig;
     typecheck: ResolvedTypecheck;

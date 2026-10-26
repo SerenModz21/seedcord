@@ -1,5 +1,55 @@
 # @seedcord/core
 
+## 0.11.0
+
+### 💥 Breaking
+
+- Requires Node 24.22.1+ on 24.x or Node 26.12.1+ for the October 2026 security fixes. ([`cc7930b`](https://github.com/seedcord/seedcord/commit/cc7930b810b17be66cff49c6cd793b199ef752a3))
+- A relative folder path in the bot config, a plugin's `dir`, Kysely's migrations folder, and a folder passed to `importFiles` now resolve against `root` from `seedcord.config.ts`. With `root: './src'`, write `interactions: { path: './handlers' }` where you wrote `'./src/handlers'`. Outside `seedcord dev` and the built output, like in a test or a `tsx` run, a relative path now throws `CoreDirectoryRootUnknown` while an absolute path like `resolve(import.meta.dirname, './handlers')` works as before. ([#382](https://github.com/seedcord/seedcord/pull/382))
+- seedcord now needs envapt ≥9.2. Run `pnpm add envapt@latest`, then update your own envapt reads with the [v8 to v9 migration guide](https://envapt.materwelon.dev/docs/migration-v8-to-v9/). ([`99e7d64`](https://github.com/seedcord/seedcord/commit/99e7d6400b19af6db55548fd02c41ac1eb9b1737))
+- A mistake in your own code or command line now throws `SeedcordTypeError`, like two handlers on one route or a bad CLI flag. A zero `Cooldown` and other numbers out of range get `SeedcordRangeError`. An env var with a bad value is reported as a plain `SeedcordError`. ([#397](https://github.com/seedcord/seedcord/pull/397))
+- Error codes that cover the same failure are now merged, like the five match-arm codes into `MatchArmMissing`, and the codes of removed features, like `CliBootstrapWriteFailed`, are gone. Many of the rest have a new number, and some old numbers now belong to a different code. Match on the `SeedcordErrorCode` member and never on the raw number. ([#397](https://github.com/seedcord/seedcord/pull/397))
+- `importFiles` now skips dotfiles, dot-folders, `node_modules`, `outDir` and the logs folder, the same way a built bot does. That covers handler, command and service folders, the command scan in `seedcord codegen` and `commands`, and hot reload in `seedcord dev`. Move a handler out of a folder like `.drafts/` to keep it loading. ([#359](https://github.com/seedcord/seedcord/pull/359))
+
+### ✨ Minor
+
+- `seedcord dev` now skips deploying the global commands, or one guild's commands, when they haven't changed since the last deploy and Discord has commands with the same names. It reads their ids from Discord, and stores the last deploy in `.seedcord/deployed-commands.json`. ([#398](https://github.com/seedcord/seedcord/pull/398))
+- `Pluggable` in `@seedcord/core/node` is now `ServerHost`, and `@seedcord/core/plugin` now exports `PluginHost`, the base class that defines `attach`. ([#362](https://github.com/seedcord/seedcord/pull/362))
+- `attach` now throws `CorePluginScopeMismatch` when a plugin's transport or runtime differs from the bot's, even when a cast or plain JS gets past the types. A plugin that narrows either one, like `Plugin<{ runtime: 'server' }>`, now has to pass the same value to `super()`, for example `super(host, { runtime: 'server' })`. ([#363](https://github.com/seedcord/seedcord/pull/363))
+- The gateway and node http `Seedcord` now work with `await using`. When the block ends, the bot runs its shutdown without calling `process.exit`. ([#364](https://github.com/seedcord/seedcord/pull/364))
+- A `startup.addTask` task now gets an `AbortSignal` that aborts when the task times out or startup stops. ([#389](https://github.com/seedcord/seedcord/pull/389))
+
+### 🩹 Patch
+
+- Fixed a plugin attached during startup, like from a startup task, never running its `init()`. `attach` now throws `CorePluginAfterInit` once startup begins. ([#363](https://github.com/seedcord/seedcord/pull/363))
+- Fixed `attach` rejecting a free key like `token` as already taken, as in `seedcord.attach('token', MyPlugin)` on an http bot. ([#362](https://github.com/seedcord/seedcord/pull/362))
+- Fixed the extra spacing before permission bullets in the permissions notice. Permission details now appear directly below the lead text. ([#370](https://github.com/seedcord/seedcord/pull/370), thanks [@lunaradev1](https://github.com/lunaradev1))
+- Fixed `seedcord dev` asking to refresh commands when you save a file in a folder like `commands-extra` next to your commands folder. ([#382](https://github.com/seedcord/seedcord/pull/382))
+- `@seedcord/core` now throws `CoreCommandGlobalDeployFailed` when Discord refuses the global commands, with Discord's error as its cause. ([#396](https://github.com/seedcord/seedcord/pull/396))
+- Fixed a bot bundled by Next.js throwing a duplicate middleware error at startup, because the minifier gave two middleware classes the same name. Two middleware classes that share a name now both run. ([#407](https://github.com/seedcord/seedcord/pull/407))
+- The "Failed to reload file" line in `seedcord dev` now prints the path relative to your project, like `./src/handlers/Ping.ts`. ([#402](https://github.com/seedcord/seedcord/pull/402))
+- Fixed a guild command deploy that Discord refused with a 401 telling you to check the guild id. The error now shows Discord's reason and tells you to check `DISCORD_BOT_TOKEN`. ([`ad9dd9b`](https://github.com/seedcord/seedcord/commit/ad9dd9b9001d1e9f567c1508b5add7cc10b6b7d2))
+- Fixed a bot failing to start when Discord held its command deploy longer than 10 seconds, like on a third restart within a minute. Startup now gives the deploy up to 75 seconds for Discord's rate limit to reset, and logs how long Discord makes it wait. ([#389](https://github.com/seedcord/seedcord/pull/389))
+- Under `seedcord dev`, the command deploy log now shows each guild by its name. ([#398](https://github.com/seedcord/seedcord/pull/398))
+- Fixed a bot under `seedcord dev` exiting on its own at `SIGTERM` before the CLI cleared its interactions endpoint. ([`6b6f9d7`](https://github.com/seedcord/seedcord/commit/6b6f9d789da1f62c6afdcfc580cd5c5c954f431d))
+- An unknown fault now prints its whole stack in your terminal, since `errors.errorStack` defaults to `true`. Set `errorStack: false` for the one-line log. ([`2443eb9`](https://github.com/seedcord/seedcord/commit/2443eb9813945fcd8fd387411df7330676a2330e))
+- Handler, middleware, command, subscriber, and service folders now load their files sorted by path. ([#358](https://github.com/seedcord/seedcord/pull/358))
+- Fixed a gateway bot answering its health path before every plugin's `ready()` finished. The health server now opens once startup is done. ([#416](https://github.com/seedcord/seedcord/pull/416))
+- Adding or removing a startup or shutdown task no longer writes a debug log line. ([#359](https://github.com/seedcord/seedcord/pull/359))
+- Fixed `seedcord codegen`, `seedcord build`, and `seedcord commands` each writing a log file under `logs/` in development. A bot now applies its `logger` config, along with the default log file, when `start()` runs. ([`b3d661a`](https://github.com/seedcord/seedcord/commit/b3d661a9ff02ab15c3b40aaea5dd786c79d9bc9c))
+- Fixed the health check rejecting with node's raw `EADDRINUSE` when its port is taken. It now throws `PortInUse`. ([#414](https://github.com/seedcord/seedcord/pull/414), thanks [@TheDanikReal](https://github.com/TheDanikReal))
+- `Seedcord` now listens for SIGINT and SIGTERM once `start()` runs. Building a bot without starting it, like a test or `seedcord codegen` does, leaves the process's Ctrl+C handling unchanged. ([#359](https://github.com/seedcord/seedcord/pull/359))
+- Fixed a bot that failed to start still deploying its commands later, once Discord's rate limit cleared. ([#389](https://github.com/seedcord/seedcord/pull/389))
+
+#### 📦 Seedcord packages
+
+- `@seedcord/custom-id` 0.3.0-next.0 → 0.3.0
+- `@seedcord/errors` 0.14.0-next.0 → 0.14.0
+- `@seedcord/event-emitter` 0.1.9-next.0 → 0.2.0
+- `@seedcord/logger` 0.5.0-next.1 → 0.5.0
+- `@seedcord/types` 0.15.0-next.0 → 0.15.0
+- `@seedcord/utils` 0.9.0-next.1 → 0.9.0
+
 ## 0.10.0
 
 ### 💥 Breaking

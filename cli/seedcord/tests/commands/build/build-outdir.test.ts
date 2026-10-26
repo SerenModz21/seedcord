@@ -4,8 +4,10 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
 import { SeedcordErrorCode } from '@seedcord/errors';
-import { BUILT_FILES_KEY } from '@seedcord/utils/node/internal';
+import { BOT_FILES_KEY } from '@seedcord/utils/internal';
 import { beforeEach, describe, expect, it, onTestFinished } from 'vite-plus/test';
+
+import { linkPackages } from '#tests/edgeFolder';
 
 import { quickBuildRunner } from './quickBuildRunner';
 
@@ -14,6 +16,7 @@ let projectDir: string;
 beforeEach(async () => {
     const tmp = await mkdtempDisposable(join(tmpdir(), 'seedcord-outdir-'));
     projectDir = tmp.path;
+    await linkPackages(projectDir, ['envapt']);
     await mkdir(join(projectDir, 'src/handlers'), { recursive: true });
     await writeFile(join(projectDir, 'src/index.ts'), '');
     await writeFile(join(projectDir, 'src/bot.ts'), '');
@@ -22,7 +25,7 @@ beforeEach(async () => {
 });
 
 async function buildWithOutDir(outDir: string): Promise<unknown> {
-    const config = { root: './src', instance: './bot.ts', entry: './index.ts', build: { outDir } };
+    const config = { root: './src', instance: './bot.ts', build: { start: './index.ts', outDir } };
     await writeFile(join(projectDir, 'seedcord.config.ts'), `export default ${JSON.stringify(config)};\n`);
     return quickBuildRunner()
         .run(projectDir)
@@ -48,7 +51,7 @@ describe('seedcord build checks outDir before it empties it', () => {
     });
 
     it('throws for an outDir that links to root', async () => {
-        await writeFile(join(projectDir, 'src/index.mjs'), `// ${BUILT_FILES_KEY}\n`);
+        await writeFile(join(projectDir, 'src/index.mjs'), `// ${BOT_FILES_KEY}\n`);
         await symlink(join(projectDir, 'src'), join(projectDir, 'out'), 'junction');
 
         await expect(buildWithOutDir('./out')).resolves.toMatchObject({
@@ -72,17 +75,17 @@ describe('seedcord build checks outDir before it empties it', () => {
 describe('seedcord build checks the server entry', () => {
     const STARTED = 'seedcordTestPluginStarted';
 
-    it('throws CliEntryNotFound before any plugin from vitePlugins starts', async () => {
+    it('throws CliFileNotFound before any plugin from vitePlugins starts', async () => {
         onTestFinished(() => {
             Reflect.deleteProperty(globalThis, STARTED);
         });
         await writeFile(
             join(projectDir, 'seedcord.config.ts'),
-            `export default { root: './src', instance: './bot.ts', entry: './missing.ts', vitePlugins: [{ name: 'marks-start', config: () => { globalThis.${STARTED} = true; } }] };\n`
+            `export default { root: './src', instance: './bot.ts', build: { start: './missing.ts' }, vitePlugins: () => [{ name: 'marks-start', config: () => { globalThis.${STARTED} = true; } }] };\n`
         );
 
         await expect(quickBuildRunner().run(projectDir)).rejects.toMatchObject({
-            code: SeedcordErrorCode.CliEntryNotFound
+            code: SeedcordErrorCode.CliFileNotFound
         });
         expect(Reflect.get(globalThis, STARTED)).toBeUndefined();
     });

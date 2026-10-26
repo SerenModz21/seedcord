@@ -4,6 +4,9 @@ node_modules/
 # debug
 npm-debug.*
 
+# vp run release:preview
+/release.md
+
 # local env files
 .env*
 !.env.example

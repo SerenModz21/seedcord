@@ -1,6 +1,6 @@
 {
     "name": "@seedcord/errors",
-    "version": "0.13.0",
+    "version": "0.14.0",
     "description": "Typed errors with registered codes for seedcord bots",
     "keywords": [
         "discord-bot",
@@ -72,6 +72,6 @@
     },
     "engines": {
         "bun": ">=1.4.2",
-        "node": ">=24.11"
+        "node": "^24.22.1 || >=26.12.1"
     }
 }

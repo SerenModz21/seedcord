@@ -3,13 +3,12 @@ import { createServer } from 'node:http';
 
 import { bindBotColor, busLoggerOf, connectDevChannel, getDevChannel, HmrManager } from '@seedcord/core/internal';
 import { CoordinatedShutdown, CoordinatedStartup, ServerHost } from '@seedcord/core/node';
-import { DRAIN_TASK_TIMEOUT_MS, ShutdownPhase, StartupPhase } from '@seedcord/core/node/internal';
+import { DRAIN_TASK_TIMEOUT_MS, HealthResponder, ShutdownPhase, StartupPhase } from '@seedcord/core/node/internal';
 import { paint, SeedcordErrorCode } from '@seedcord/errors';
 import { SeedcordError } from '@seedcord/errors/internal';
 import { Logger } from '@seedcord/logger';
-import { installNodeDefaults } from '@seedcord/logger/node';
-import { HostAugmentTarget, HostListenHost, HostVersion, SeedcordBrand } from '@seedcord/types/internal';
-import { isPortInUse } from '@seedcord/utils/node/internal';
+import { HostAugmentTarget, HostListenHost, HostStartup, HostVersion, SeedcordBrand } from '@seedcord/types/internal';
+import { isPortInUse } from '@seedcord/utils/internal';
 import { Envapter } from 'envapt';
 
 import { HttpStartupTasks } from '#src/HttpStartupTasks';
@@ -69,18 +68,26 @@ export class Seedcord extends ServerHost<'http'> implements SeedcordInstance {
 
     public readonly config: HttpServerConfig;
 
+    /**
+     * @throws A **SeedcordError** when another `Seedcord` exists in this process and has not shut down.
+     * @throws A **SeedcordError** when the running Node or Bun is older than the range in `engines`.
+     */
     constructor(config: HttpServerConfig) {
         super('http', new CoordinatedShutdown(config.lifecycle?.shutdownDeadline), new CoordinatedStartup());
         this.config = config;
 
-        installNodeDefaults(config.logger);
         bindBotColor(() => this.config.botColor);
 
         this.#service = new InteractionsService(this, config, config.bot.restOptions);
         this.rest = this.#service.rest;
         this.rateLimiter = this.#service.rateLimiter;
         this.bus = this.#service.bus;
-        this.#endpoint = new NodeEndpoint(this.#service, this.#logger);
+        this.#endpoint = new NodeEndpoint(
+            this.#service,
+            this.#logger,
+            HealthResponder.fromOption(config.healthCheck),
+            this[HostStartup]
+        );
 
         this.#hmrManager = new HmrManager();
         this.#hmrManager.init(connectDevChannel());

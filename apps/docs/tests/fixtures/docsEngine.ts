@@ -1,6 +1,7 @@
 import { IndexLoader, VersionedDocsEngine } from '@seedcord/docs-engine';
-import { DocKind, slugifySegment } from '@seedcord/docs-engine/client';
+import { slugifySegment } from '@seedcord/docs-engine/client';
 import { RuntimeBuild } from '@seedcord/docs-generator/runtime-build';
+import { DocKind } from '@seedcord/docs-search';
 
 import type { DocNode, DocPackageModel, DocProjectFile, IndexJson } from '@seedcord/docs-engine';
 

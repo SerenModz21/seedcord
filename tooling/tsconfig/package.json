@@ -1,6 +1,6 @@
 {
     "name": "@seedcord/tsconfig",
-    "version": "2.0.6",
+    "version": "3.0.0",
     "description": "Shared TypeScript config for seedcord projects",
     "keywords": [
         "seedcord",
@@ -46,6 +46,6 @@
     },
     "engines": {
         "bun": ">=1.4.2",
-        "node": ">=24.11"
+        "node": "^24.22.1 || >=26.12.1"
     }
 }

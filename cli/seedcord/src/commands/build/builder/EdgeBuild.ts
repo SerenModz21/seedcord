@@ -1,17 +1,17 @@
 import { dirname, join } from 'node:path';
 
 import { warnLinks } from '@seedcord/core/internal';
-import { SeedcordErrorCode } from '@seedcord/errors';
+import { paint, SeedcordErrorCode } from '@seedcord/errors';
 import { SeedcordError } from '@seedcord/errors/internal';
-import { isInside } from '@seedcord/utils/node/internal';
+import { BotLayout, isInside } from '@seedcord/utils/internal';
 import { createBuilder } from 'vite';
 
 import { cliLogger } from '#core/cliLogger';
-import { restFromEnv } from '#core/discord/restFromEnv';
-import { importCloudflare, importCloudflareCopy, WORKER_ENVIRONMENT } from '#core/modules/cloudflarePlugin';
+import { restOf } from '#core/discord/restOf';
+import { BOT_ENVIRONMENT, LOOK_FOR_BUILD_PLUGIN } from '#core/modules/botEnvironment';
+import { importCloudflare, importCloudflareCopy } from '#core/modules/cloudflarePlugin';
 import { CommandScanner } from '#core/modules/CommandScanner';
 import { functionExportsOf } from '#core/modules/workerExports';
-import { viteKey } from '#core/project/ProjectFiles';
 
 import { assertNodeCompat } from './assertNodeCompat';
 import { bootWorker } from './bootWorker';
@@ -31,20 +31,21 @@ import type { CommandsInCode } from './readDiscord';
 import type { NextCommand } from './TargetBuild';
 import type { REST } from '@discordjs/rest';
 import type { BakedIds } from '@seedcord/core/internal';
-import type { BotConfig, CommandsConfig } from '@seedcord/types';
+import type { CommandsConfig } from '@seedcord/types';
+import type { SeedcordInstance } from '@seedcord/types/internal';
 import type { EnvironmentOptions, Plugin, Rolldown } from 'vite';
 
 interface EdgeBuildDeps {
     importCloudflare: ImportCloudflare;
-    openDiscord: () => Pick<REST, 'get'>;
+    openDiscord: (instance: SeedcordInstance) => Pick<REST, 'get'>;
 }
 
-const DEFAULT_DEPS: EdgeBuildDeps = { importCloudflare, openDiscord: restFromEnv };
+const DEFAULT_DEPS: EdgeBuildDeps = { importCloudflare, openDiscord: restOf };
 
 function captureChunks(onChunks: (chunks: Rolldown.OutputChunk[]) => void): Plugin {
     return {
         name: 'seedcord:capture-chunks',
-        applyToEnvironment: (environment) => environment.name === WORKER_ENVIRONMENT,
+        applyToEnvironment: (environment) => environment.name === BOT_ENVIRONMENT,
         generateBundle(_options, bundle) {
             onChunks(Object.values(bundle).filter((file) => file.type === 'chunk'));
         }
@@ -53,7 +54,7 @@ function captureChunks(onChunks: (chunks: Rolldown.OutputChunk[]) => void): Plug
 
 function workerEnvironment(): Record<string, EnvironmentOptions> {
     return {
-        [WORKER_ENVIRONMENT]: {
+        [BOT_ENVIRONMENT]: {
             build: {
                 sourcemap: true,
                 minify: false,
@@ -92,11 +93,12 @@ export class EdgeBuild extends TargetBuild {
         }
     }
 
-    public async readDiscord(bot: BotConfig): Promise<BakedIds> {
+    public async readDiscord(instance: SeedcordInstance): Promise<BakedIds> {
+        const { commands, emojis } = instance.config.bot;
         const read = await readDiscord({
-            rest: this.deps.openDiscord(),
-            commands: await this.commandsInCode(bot.commands),
-            emojis: bot.emojis
+            rest: this.deps.openDiscord(instance),
+            commands: await this.commandsInCode(commands),
+            emojis
         });
 
         warnLinks(this.logger, read);
@@ -108,11 +110,15 @@ export class EdgeBuild extends TargetBuild {
         const [folders, cloudflare] = await Promise.all([files.foldersIncludingEmpty(), this.worker()]);
 
         const captured = await this.bundleWorker(ids, folders, cloudflare).catch(bundleFailed);
-        const chunks = captured ?? bundleFailed(`the ${WORKER_ENVIRONMENT} environment didn't write a bundle`);
+        const chunks =
+            captured ??
+            bundleFailed(
+                `Vite finished without building the ${paint.bold(BOT_ENVIRONMENT)} environment. ${LOOK_FOR_BUILD_PLUGIN}`
+            );
         const built = await cloudflare.built().catch(bundleFailed);
         assertNodeCompat(built, this.target.cloudflareConfig);
 
-        return bundleStats(chunks, files, join(built.bundleDir, ENTRY_FILE_NAME));
+        return bundleStats(chunks, files.layout, join(built.bundleDir, ENTRY_FILE_NAME));
     }
 
     private async bundleWorker(
@@ -133,19 +139,19 @@ export class EdgeBuild extends TargetBuild {
             logLevel: 'warn',
             plugins: [
                 workerEntry({
-                    files,
+                    layout: files.layout,
                     folders,
-                    instanceKey: viteKey(viteRoot, config.instance),
+                    instanceKey: BotLayout.keyUnder(viteRoot, config.instance),
                     functionExports: () => functionExportsOf(modules, config.instance),
-                    rootKey: viteKey(viteRoot, config.root),
+                    rootKey: BotLayout.keyUnder(viteRoot, config.root),
                     mode: { kind: 'build', ids }
                 }),
-                pinModulePaths(files),
+                pinModulePaths(files.layout),
                 captureChunks((captured) => {
                     chunks = captured;
                 }),
                 cloudflare.plugins({ persistState: false }),
-                ...config.vitePlugins
+                config.vitePlugins.create()
             ],
             resolve: { tsconfigPaths: true },
             environments: workerEnvironment()
@@ -170,7 +176,7 @@ export class EdgeBuild extends TargetBuild {
 
     private async commandsInCode(commands: CommandsConfig): Promise<CommandsInCode | undefined> {
         if (commands.path === null) return undefined;
-        const scanner = new CommandScanner(this.project.modules, this.project.config.root);
+        const scanner = new CommandScanner(this.project.modules, this.project.files);
         const found = await scanner.scan(commands.path);
         return { found, configuredGuilds: commands.guilds ?? [] };
     }

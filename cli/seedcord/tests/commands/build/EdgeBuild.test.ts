@@ -2,7 +2,6 @@ import { join } from 'node:path';
 import { stripVTControlCharacters } from 'node:util';
 
 import { isSeedcordError, SeedcordErrorCode } from '@seedcord/errors';
-import { Envapter, PortableSource } from 'envapt';
 import { assert, describe, expect, it } from 'vite-plus/test';
 
 import { EdgeBuild } from '#commands/build/builder/EdgeBuild';
@@ -11,7 +10,8 @@ import { ProjectLoader } from '#core/config/ProjectLoader';
 import { importInstance } from '#core/modules/importInstance';
 import { openModuleLoader } from '#core/modules/openModuleLoader';
 import { quietSteps } from '#core/output/quietSteps';
-import { ShellMode } from '#core/viteMode';
+import { ShellMode } from '#src/core/ShellMode';
+import { bindEnv } from '#tests/bindEnv';
 
 import type { Project } from '#core/project/Project';
 import type { BakedIds } from '@seedcord/core/internal';
@@ -73,11 +73,11 @@ describe('EdgeBuild', () => {
         await using project = await openEdgeBot();
         const { target } = project.config;
         assert(target.kind === 'edge');
-        const { config } = await importInstance(project.modules, project.config.instance);
+        const instance = await importInstance(project.modules, project.config.instance);
         // opening the project binds process.env
-        Envapter.useSource(new PortableSource({}));
+        using _env = bindEnv({});
 
-        await expect(new EdgeBuild(project, target).readDiscord(config.bot)).rejects.toMatchObject({
+        await expect(new EdgeBuild(project, target).readDiscord(instance)).rejects.toMatchObject({
             code: SeedcordErrorCode.ConfigMissingEnv
         });
     });
@@ -86,10 +86,15 @@ describe('EdgeBuild', () => {
         await using project = await openEdgeBot();
         const { target, root } = project.config;
         assert(target.kind === 'edge');
-        const { config } = await importInstance(project.modules, project.config.instance);
+        const instance = await importInstance(project.modules, project.config.instance);
         const build = new EdgeBuild(project, target, { openDiscord: () => ({ get: () => Promise.resolve([]) }) });
+        const { config } = instance;
+        const elsewhere = {
+            ...instance,
+            config: { ...config, bot: { ...config.bot, commands: { path: './no-commands' } } }
+        };
 
-        await expect(build.readDiscord({ ...config.bot, commands: { path: './no-commands' } })).rejects.toMatchObject({
+        await expect(build.readDiscord(elsewhere)).rejects.toMatchObject({
             code: SeedcordErrorCode.CorePathUnreadable,
             message: expect.stringContaining(join(root, 'no-commands')) as string
         });

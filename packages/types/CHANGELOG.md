@@ -1,5 +1,20 @@
 # @seedcord/types
 
+## 0.15.0
+
+### 💥 Breaking
+
+- Requires Node 24.22.1+ on 24.x or Node 26.12.1+ for the October 2026 security fixes. ([`cc7930b`](https://github.com/seedcord/seedcord/commit/cc7930b810b17be66cff49c6cd793b199ef752a3))
+- Removed `RenameKey`. Use `RenameKeys` from type-fest, as in `RenameKeys<User, { oldKey: 'newKey' }>`. ([`42ecb35`](https://github.com/seedcord/seedcord/commit/42ecb35f66fade0c4b1bfa45541807d70f8ffe28))
+
+### ✨ Minor
+
+- Removed the `runtime` field from the bot config. Delete it from your config, and write `Seedcord` where you wrote `Seedcord<HttpServerConfig>`. ([#363](https://github.com/seedcord/seedcord/pull/363))
+
+### 🩹 Patch
+
+- An unknown fault now prints its whole stack in your terminal, since `errors.errorStack` defaults to `true`. Set `errorStack: false` for the one-line log. ([`2443eb9`](https://github.com/seedcord/seedcord/commit/2443eb9813945fcd8fd387411df7330676a2330e))
+
 ## 0.14.4
 
 ### 🩹 Patch
