@@ -197,7 +197,7 @@ describe('winston sinks', () => {
     });
 
     it('the console sink stops writing once its stdout closes', async () => {
-        const child = spawn(process.execPath, ['--import', 'tsx', LOGS_TO_STDOUT], {
+        const child = spawn(process.execPath, ['--import', 'jiti/register', LOGS_TO_STDOUT], {
             stdio: ['ignore', 'pipe', 'pipe']
         });
         await once(child.stdout, 'data');

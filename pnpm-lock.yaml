@@ -226,6 +226,9 @@ catalogs:
     ink:
       specifier: ^8.0.0
       version: 8.0.0
+    jiti:
+      specifier: ^2.7.0
+      version: 2.7.0
     lucide-react:
       specifier: ^1.51.0
       version: 1.61.0
@@ -256,9 +259,6 @@ catalogs:
     takumi-js:
       specifier: 2.14.0
       version: 2.14.0
-    tsx:
-      specifier: ^4.23.15
-      version: 4.23.15
     type-fest:
       specifier: ^5.9.0
       version: 5.10.0
@@ -447,6 +447,9 @@ importers:
       eslint:
         specifier: catalog:eslint
         version: 10.13.0(jiti@2.7.0)(supports-color@10.2.2)
+      jiti:
+        specifier: catalog:deps
+        version: 2.7.0
       knip:
         specifier: ^6.31.0
         version: 6.43.0
@@ -459,9 +462,6 @@ importers:
       taze:
         specifier: ^21.3.0
         version: 21.3.0
-      tsx:
-        specifier: catalog:deps
-        version: 4.23.15
       turbo:
         specifier: ^2.11.2
         version: 2.11.10
@@ -1054,9 +1054,6 @@ importers:
       ink-testing-library:
         specifier: ^4.0.0
         version: 4.0.0(@types/react@19.3.0)(ink@8.0.0(@types/react@19.3.0)(react@19.3.1))
-      tsx:
-        specifier: catalog:deps
-        version: 4.23.15
       type-fest:
         specifier: catalog:deps
         version: 5.10.0
@@ -1523,9 +1520,9 @@ importers:
       envapt:
         specifier: catalog:peer
         version: 9.2.0
-      tsx:
+      jiti:
         specifier: catalog:deps
-        version: 4.23.15
+        version: 2.7.0
       vitest:
         specifier: catalog:test
         version: 5.0.5(@opentelemetry/api@1.10.0)(@types/node@26.6.5)(@vitest/browser-preview@5.0.5)(@vitest/coverage-istanbul@5.0.5)(@vitest/coverage-v8@5.0.5)(@vitest/ui@5.0.5)(@voidzero-dev/vite-plus-core@1.4.0(@types/node@26.6.5)(@typescript/native-preview@7.0.0-dev.20260630.1)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(typescript@6.0.3)(yaml@2.9.1))(jsdom@30.1.3)
@@ -1622,9 +1619,6 @@ importers:
       discord.js:
         specifier: catalog:peer
         version: 14.27.0
-      tsx:
-        specifier: catalog:deps
-        version: 4.23.15
       type-fest:
         specifier: catalog:deps
         version: 5.10.0
@@ -18054,6 +18048,7 @@ snapshots:
       esbuild: 0.28.2
     optionalDependencies:
       fsevents: 2.3.3
+    optional: true
 
   turbo@2.11.10:
     optionalDependencies:

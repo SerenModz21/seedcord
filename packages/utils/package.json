@@ -70,7 +70,6 @@
         "@seedcord/tsdown-config": "workspace:^",
         "@seedcord/vitest-config": "workspace:^",
         "discord.js": "catalog:peer",
-        "tsx": "catalog:deps",
         "type-fest": "catalog:deps",
         "vitest": "catalog:test"
     },
