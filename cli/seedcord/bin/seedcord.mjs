@@ -39,7 +39,6 @@ async function run() {
     const distEntry = resolve(here, '../dist/cli.mjs');
     if (existsSync(distEntry)) {
         await import(pathToFileURL(distEntry).href);
-        
     }
 }
 
