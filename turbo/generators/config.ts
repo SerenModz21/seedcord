@@ -83,8 +83,8 @@ export default function generator(plop: PlopTypes.NodePlopAPI): void {
             },
             {
                 type: 'add',
-                path: '{{ dir }}/{{ folder dir name }}/vitest.config.ts',
-                templateFile: 'templates/vitest.config.ts.hbs'
+                path: '{{ dir }}/{{ folder dir name }}/vite.config.ts',
+                templateFile: 'templates/vite.config.ts.hbs'
             }
         ]
     });
