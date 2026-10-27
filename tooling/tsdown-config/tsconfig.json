@@ -3,8 +3,7 @@
     "extends": "@seedcord/tsconfig/node",
     "compilerOptions": {
         "rootDir": "./",
-        "outDir": "./dist",
-        "allowImportingTsExtensions": true
+        "outDir": "./dist"
     },
     "include": ["**/*.ts"],
     "exclude": ["node_modules", "dist", "coverage"]

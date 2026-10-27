@@ -6,8 +6,7 @@
         "types": [],
         "jsx": "react-jsx",
         "rootDir": "./",
-        "outDir": "./dist",
-        "allowImportingTsExtensions": true
+        "outDir": "./dist"
     },
     "include": ["src/**/*.ts", "src/**/*.tsx", "tests/**/*.ts", "tests/**/*.tsx", "eslint.config.ts", "vite.config.ts"],
     "exclude": ["node_modules", "dist"]

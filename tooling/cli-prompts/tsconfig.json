@@ -4,8 +4,7 @@
     "compilerOptions": {
         "rootDir": "./",
         "outDir": "./dist",
-        "jsx": "react",
-        "allowImportingTsExtensions": true
+        "jsx": "react"
     },
     "include": [
         "src/**/*.ts",
