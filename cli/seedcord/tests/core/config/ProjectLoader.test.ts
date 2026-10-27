@@ -1,5 +1,6 @@
 import { mkdirSync, symlinkSync, writeFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
+import process from 'node:process';
 
 import { SeedcordErrorCode, isSeedcordError } from '@seedcord/errors';
 import { toPosixPath } from '@seedcord/utils/internal';
@@ -48,7 +49,7 @@ describe('ProjectLoader', () => {
         writeFileSync(join(projectDir, 'seedcord.config.ts'), '');
         const source = join(projectDir, 'source');
         mkdirSync(source);
-        symlinkSync(source, join(projectDir, 'src'), 'dir');
+        symlinkSync(source, join(projectDir, 'src'), process.platform === 'win32' ? 'junction' : 'dir');
         const { open } = stubModulesExporting({ ...MINIMAL, root: './src', files: ['./locales'] });
 
         await using loaded = await new ProjectLoader(open, new ShellMode()).readConfig(projectDir);
