@@ -7,9 +7,9 @@
         {{#if cliOnBun}}"bun": "{{ engines.bun }}"{{else}}"node": "{{ engines.node }}"{{/if}}
     },
     "imports": {
-        "#src/*": "./src/*",
-        "#components/*": "./src/components/*",
-        "#plugins/*": "./src/plugins/*"
+        "#src/*": "./src/*.ts",
+        "#components/*": "./src/components/*.ts",
+        "#plugins/*": "./src/plugins/*.ts"
     },
     "scripts": {
         "dev": "seedcord dev",
