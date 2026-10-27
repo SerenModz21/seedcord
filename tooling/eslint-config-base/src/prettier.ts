@@ -1,6 +1,6 @@
 import { PRETTIER_CONFIG } from './rules/prettier-config';
 
-import type { Options } from 'prettier';
+import type { Config, Options } from 'prettier';
 
 /**
  * Prettier config augmented with the option keys contributed by `prettier-plugin-tailwindcss`.
@@ -52,7 +52,7 @@ export interface CreatePrettierConfigOptions {
     /**
      * Per-glob option overrides, passed through to prettier's own `overrides` field.
      */
-    overrides?: PrettierConfig['overrides'];
+    overrides?: Config['overrides'];
 }
 
 /**

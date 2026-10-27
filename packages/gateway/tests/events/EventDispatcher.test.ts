@@ -92,7 +92,7 @@ describe('EventDispatcher Integration', () => {
         expect(() => fire?.({ reply: vi.fn() })).not.toThrow();
     });
 
-    it('publishes eventDispatching with the fired name and its args', async ({ testEnv }) => {
+    it('publishes eventDispatching with the current event name and its args', async ({ testEnv }) => {
         const eventsDir = 'events';
         await testEnv.createFile(
             `${eventsDir}/Ping.ts`,
@@ -130,7 +130,7 @@ describe('EventDispatcher Integration', () => {
         expect(seen[0]?.args[0]).toBe(message);
     });
 
-    it('threads the fired event name into the handler so match routes to the right arm', async ({ testEnv }) => {
+    it('threads the current event name into the handler so match routes to the right arm', async ({ testEnv }) => {
         const eventsDir = 'events';
         await testEnv.createFile(
             `${eventsDir}/PingMulti.ts`,
@@ -195,7 +195,7 @@ describe('EventDispatcher Integration', () => {
         expect(publish).toHaveBeenCalledWith('unknownException', expect.anything());
     });
 
-    it('marks a once handler spent even when it throws a non-Error, so it does not re-fire', async ({ testEnv }) => {
+    it('marks a once handler spent even when it throws a non-Error, so it does not run again', async ({ testEnv }) => {
         const eventsDir = 'events';
         await testEnv.createFile(
             `${eventsDir}/OnceBoom.ts`,
@@ -226,7 +226,7 @@ describe('EventDispatcher Integration', () => {
         expect(member.setNickname).toHaveBeenCalledTimes(1);
     });
 
-    it('runs a once handler exactly once when the same event fires concurrently', async ({ testEnv }) => {
+    it('runs a once handler exactly once when the same event is emitted concurrently', async ({ testEnv }) => {
         const eventsDir = 'events';
         await testEnv.createFile(
             `${eventsDir}/OnceConcurrent.ts`,
@@ -249,7 +249,7 @@ describe('EventDispatcher Integration', () => {
         const events = dispatcherOf(seedcord);
         await events.init();
 
-        // both fires pass the once filter because runMiddlewares awaits between the snapshot and the mark
+        // both dispatches pass the once filter because runMiddlewares awaits between the snapshot and the mark
         const message = { reply: vi.fn() };
         await Promise.all([
             events.processEvent('messageCreate', [message]),
@@ -259,7 +259,7 @@ describe('EventDispatcher Integration', () => {
         expect(message.reply).toHaveBeenCalledTimes(1);
     });
 
-    it('does not consume a once handler when middleware blocks the fire', async ({ testEnv }) => {
+    it('does not consume a once handler when middleware blocks the dispatch', async ({ testEnv }) => {
         const eventsDir = 'events';
         const middlewaresDir = 'event-mw';
 
@@ -289,7 +289,7 @@ describe('EventDispatcher Integration', () => {
             export class BlockFirst extends EventMiddleware {
                 public async execute() {
                     fires++;
-                    if (fires === 1) throw new Silence('block the first fire');
+                    if (fires === 1) throw new Silence('block the first dispatch');
                 }
             }
             `
