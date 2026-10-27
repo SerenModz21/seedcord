@@ -15,7 +15,7 @@ The seedcord monorepo enforces quality through layered checks. Most are tool-enf
 | **Vitest** (tool) | Behavior regressions | `vp -C <pkg> test` (only after lint + tc pass) |
 | **Oxfmt** (tool) | Formatting | `vp fmt` / `vp fmt --check` |
 | **changesets** (tool) | Missing version bump on published packages | `vp run cs` when touching a published package. `vp run cs:status` to check |
-| **React 19 antipatterns** (tool) | Mutable deps, index keys, deprecated APIs, hydration mismatches, hand-rolled `useContext`, giant components | `vp run react-doctor --verbose` from repo root. Configured via `doctor.config.ts`. Run deliberately, NOT on every `prePush` (it's slow + interactive). Use the verbose flag for per-file diagnostics. |
+| **React 19 antipatterns** (tool) | Mutable deps, index keys, deprecated APIs, hydration mismatches, hand-rolled `useContext`, giant components | `vp run react-doctor` from repo root. Configured via `doctor.config.ts`. Run deliberately, NOT on every `prePush` (it's slow + interactive). Use the verbose flag for per-file diagnostics. |
 | **Dead code / unused deps** (tool) | Unused files, exports, types, deps, devDeps, binaries | `vp run knip` from repo root. Configured via `knip.json`. Run deliberately, NOT on every `prePush`. Triage false positives into `knip.json` `ignoreDependencies` / `ignoreBinaries` / extra `entry` patterns with a comment explaining why. |
 | **Cross-package source paths** (review) | `paths` or `include` reaching into another package's `src` | Manual review of every new/changed `tsconfig.json` and `vite.config.ts`. |
 
