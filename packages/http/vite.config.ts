@@ -1,13 +1,12 @@
 import { cloudflareTest } from '@cloudflare/vitest-plugin';
 import { createTsdownConfig } from '@seedcord/tsdown-config';
-import { createTestConfig } from '@seedcord/vitest-config';
-import { defineConfig } from 'vite-plus';
+import { createDefaultConfig } from '@seedcord/vitest-config';
 
 // the workerd project keeps its own config. extending the shared one breaks @discordjs/builders in the node project
 // const alias = aliasFromTsconfig(import.meta.url);
 
-export default defineConfig({
-    test: createTestConfig({
+export default createDefaultConfig({
+    test: {
         coverage: {
             // the workers pool rejects the v8 provider the shared config sets
             provider: 'istanbul'
@@ -52,6 +51,8 @@ export default defineConfig({
                 }
             }
         ]
-    }),
-    pack: createTsdownConfig({ entry: ['src/index.ts', 'src/workerd.index.ts'] })
+    },
+    pack: createTsdownConfig({
+        entry: ['src/index.ts', 'src/workerd.index.ts']
+    })
 });

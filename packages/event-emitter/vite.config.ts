@@ -1,8 +1,8 @@
 import { createTsdownConfig } from '@seedcord/tsdown-config';
-import { createTestConfig } from '@seedcord/vitest-config';
-import { defineConfig } from 'vite-plus';
+import { createDefaultConfig } from '@seedcord/vitest-config';
 
-export default defineConfig({
-    test: createTestConfig(),
-    pack: createTsdownConfig({ entry: ['src/index.ts'] })
+export default createDefaultConfig({
+    pack: createTsdownConfig({
+        entry: ['src/index.ts']
+    })
 });

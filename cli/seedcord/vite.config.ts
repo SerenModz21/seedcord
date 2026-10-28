@@ -1,12 +1,11 @@
 import { createTsdownConfig } from '@seedcord/tsdown-config';
-import { createTestConfig } from '@seedcord/vitest-config';
-import { defineConfig } from 'vite-plus';
+import { createDefaultConfig } from '@seedcord/vitest-config';
 
-export default defineConfig({
-    test: createTestConfig({
+export default createDefaultConfig({
+    test: {
         globals: true,
         environment: 'node'
-    }),
+    },
     pack: createTsdownConfig({
         entry: ['src/index.ts', 'src/workerd.index.ts', 'src/cli.ts'],
         format: ['esm'],

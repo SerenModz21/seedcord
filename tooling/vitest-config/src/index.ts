@@ -3,10 +3,8 @@ import { fileURLToPath } from 'node:url';
 
 import { parseTsconfig } from 'get-tsconfig';
 import { configDefaults, defineConfig, mergeConfig } from 'vite-plus';
-import { deepMerge } from 'vite-plus/test/plugins/utils-helpers';
 
 import type { ViteUserConfig, AliasOptions } from 'vite-plus';
-import type { InlineConfig } from 'vite-plus/test/node';
 
 const base = defineConfig({
     // oxc reads the Next apps' jsx: preserve as the classic runtime
@@ -56,26 +54,6 @@ function wildcardPrefixLength(key: string): number {
     return key.includes('*') ? key.indexOf('*') : Number.MAX_SAFE_INTEGER;
 }
 
-const VITEST_CONFIG: InlineConfig = {
-    testTimeout: 10_000,
-    passWithNoTests: true,
-    exclude: [...configDefaults.exclude, '**/.claude/**'],
-    coverage: {
-        enabled: false,
-        provider: 'v8',
-        reporter: [['lcovonly', { file: 'lcov.info' }], ['html']],
-        include: ['src'],
-        exclude: ['**/node_modules/**', '**/dist/**', '**/*.test.ts', '**/*.spec.ts', '**/logs/**', '**/*.log']
-    }
-};
-
-export function createTestConfig(overrides: InlineConfig = {}): InlineConfig {
-    return deepMerge(VITEST_CONFIG, overrides);
-}
-
-export function createVitestConfig(configUrl: string, overrides: ViteUserConfig = {}): ViteUserConfig {
-    return mergeConfig(
-        mergeConfig(base, defineConfig({ resolve: { alias: aliasFromTsconfig(configUrl) } })),
-        overrides
-    );
+export function createDefaultConfig(overrides: ViteUserConfig = {}): ViteUserConfig {
+    return mergeConfig(base, overrides);
 }

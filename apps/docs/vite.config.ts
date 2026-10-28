@@ -1,12 +1,11 @@
-import { createTestConfig } from '@seedcord/vitest-config';
-import { defineConfig } from 'vite-plus';
+import { createDefaultConfig } from '@seedcord/vitest-config';
 
-export default defineConfig({
-    test: createTestConfig({
+export default createDefaultConfig({
+    test: {
         // these tests vi.mock docs' own modules, and a mock carries into the next file in a shared worker
         isolate: true,
         globals: true,
         environment: 'jsdom',
         setupFiles: ['./tests/test-setup.ts']
-    })
+    }
 });
