@@ -22,7 +22,6 @@
         "tests/**/*.ts",
         "tests/**/*.tsx",
         "eslint.config.ts",
-        "prettier.config.ts",
         "next.config.ts",
         "vite.config.ts",
         "source.config.ts",
