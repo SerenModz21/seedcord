@@ -12,7 +12,8 @@
             }
         ],
         "incremental": true,
-        "esModuleInterop": true
+        "esModuleInterop": true,
+        "allowImportingTsExtensions": true
     },
     "include": [
         "next-env.d.ts",

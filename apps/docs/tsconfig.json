@@ -11,6 +11,7 @@
                 "name": "next"
             }
         ],
+        "allowImportingTsExtensions": true,
         "incremental": true,
         "esModuleInterop": true
     },

@@ -5,7 +5,8 @@
         "rootDir": "./",
         "outDir": "./dist",
         "types": ["react"],
-        "jsx": "react"
+        "jsx": "react",
+        "allowImportingTsExtensions": true
     },
     "include": [
         "src/**/*.ts",
