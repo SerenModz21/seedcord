@@ -1,3 +1,6 @@
-import { createDefaultConfig } from '@seedcord/vitest-config';
+import { createTestConfig } from '@seedcord/vitest-config';
+import { defineConfig } from 'vite-plus';
 
-export default createDefaultConfig();
+export default defineConfig({
+    test: createTestConfig()
+});

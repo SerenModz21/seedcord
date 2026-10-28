@@ -1,9 +1,10 @@
-import { createDefaultConfig } from '@seedcord/vitest-config';
+import { defineConfig } from 'vite-plus';
+import { createTestConfig } from '@seedcord/vitest-config';
 
-export default createDefaultConfig({
-    test: {
+export default defineConfig({
+    test: createTestConfig({
         testTimeout: 60_000
-    },
+    }),
     // inlined to avoid circular dependency. Keep in sync with tooling/tsdown-config/src/index.ts.
     pack: {
         format: ['esm'],

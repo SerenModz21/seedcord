@@ -10,8 +10,6 @@ export default defineConfig({
         '*.{ts,tsx,js,jsx,cjs,mjs}': runEslint
     },
     fmt: {
-        // importing the defaults with createOxfmtConfig() ignores that
-        // templates are apart of ignorePatterns and formats them anyway
         ignorePatterns: [
             'node_modules/**',
             '.eslintcache',
@@ -48,7 +46,6 @@ export default defineConfig({
                 options: { tabWidth: 2 }
             },
             {
-                // files: ['tooling/ui/**/*.{ts,tsx,json,md,css}'],
                 files: [
                     'tooling/ui/**/*.ts',
                     'tooling/ui/**/*.tsx',
@@ -64,7 +61,6 @@ export default defineConfig({
                 }
             },
             {
-                // files: ['apps/docs/**/*.{ts,tsx,json,md,css}'],
                 files: [
                     'apps/docs/**/*.ts',
                     'apps/docs/**/*.tsx',
@@ -80,7 +76,6 @@ export default defineConfig({
                 }
             },
             {
-                // files: ['apps/home/**/*.{ts,tsx,json,md,css}'],
                 files: [
                     'apps/home/**/*.ts',
                     'apps/home/**/*.tsx',
@@ -96,7 +91,6 @@ export default defineConfig({
                 }
             },
             {
-                // files: ['apps/guide/**/*.{ts,tsx,json,md,css}'],
                 files: [
                     'apps/guide/**/*.ts',
                     'apps/guide/**/*.tsx',

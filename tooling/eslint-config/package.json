@@ -42,12 +42,6 @@
                 "types": "./dist/prettier.d.mts",
                 "default": "./dist/prettier.mjs"
             }
-        },
-        "./oxfmt": {
-            "import": {
-                "types": "./dist/oxfmt.d.mts",
-                "default": "./dist/oxfmt.mjs"
-            }
         }
     },
     "publishConfig": {
