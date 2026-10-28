@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it } from 'vite-plus/test';
 
 import { postPreview } from '#lib/linkPreview.ts';
 import { POST } from '#tests/fixtures/post';

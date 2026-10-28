@@ -3,7 +3,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
 import { SeedcordErrorCode } from '@seedcord/errors';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it } from 'vite-plus/test';
 
 import { CommandScanner } from '#core/modules/CommandScanner';
 import { ProjectFiles } from '#core/project/ProjectFiles';

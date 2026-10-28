@@ -15,7 +15,7 @@ import { testConfig } from './utils/test-config';
 import type { ILogSink } from '@seedcord/types';
 import type { Client } from 'discord.js';
 import type { AddressInfo } from 'node:net';
-import type { Mock } from 'vitest';
+import type { Mock } from 'vite-plus/test';
 
 function freePort(): Promise<number> {
     const probe = createServer().listen(0, '127.0.0.1');
