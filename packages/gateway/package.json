@@ -75,7 +75,8 @@
         "@seedcord/rate-limiter": "workspace:^",
         "@seedcord/types": "workspace:^",
         "@seedcord/utils": "workspace:^",
-        "reflect-metadata": "catalog:deps"
+        "reflect-metadata": "catalog:deps",
+        "type-fest": "catalog:deps"
     },
     "devDependencies": {
         "@seedcord/eslint-config": "workspace:^",
@@ -84,7 +85,6 @@
         "@seedcord/vitest-config": "workspace:^",
         "discord.js": "catalog:peer",
         "envapt": "catalog:peer",
-        "type-fest": "catalog:deps",
         "vitest": "catalog:test"
     },
     "peerDependencies": {

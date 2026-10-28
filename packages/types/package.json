@@ -59,7 +59,8 @@
     },
     "dependencies": {
         "@discordjs/rest": "catalog:deps",
-        "discord-api-types": "catalog:deps"
+        "discord-api-types": "catalog:deps",
+        "type-fest": "catalog:deps"
     },
     "devDependencies": {
         "@seedcord/eslint-config": "workspace:^",
@@ -67,7 +68,6 @@
         "@seedcord/tsdown-config": "workspace:^",
         "@seedcord/vitest-config": "workspace:^",
         "discord.js": "catalog:peer",
-        "type-fest": "catalog:deps",
         "vitest": "catalog:test"
     },
     "peerDependencies": {

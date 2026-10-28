@@ -114,6 +114,7 @@
         "@seedcord/utils": "workspace:^",
         "discord-api-types": "catalog:deps",
         "reflect-metadata": "catalog:deps",
+        "type-fest": "catalog:deps",
         "verkit": "catalog:deps"
     },
     "devDependencies": {
@@ -123,7 +124,6 @@
         "@seedcord/tsdown-config": "workspace:^",
         "@seedcord/vitest-config": "workspace:^",
         "envapt": "catalog:peer",
-        "type-fest": "catalog:deps",
         "vite": "catalog:deps",
         "vitest": "catalog:test"
     },
