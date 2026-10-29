@@ -195,6 +195,25 @@ describe('DevSession', () => {
         expect(writeFrom).toHaveBeenCalledOnce();
     });
 
+    it('runs one more type write for any number of requests during a write', async () => {
+        const { promise: firstWrite, resolve: finishFirstWrite } = Promise.withResolvers<typeof UNCHANGED>();
+        const writeFrom = vi.fn().mockReturnValueOnce(firstWrite).mockResolvedValue(UNCHANGED);
+        const session = new DevSession(...withFiles(config()), fakeRuntime({ default: fakeBot() }), {
+            ...sessionDeps(),
+            codegen: { writeFrom }
+        });
+
+        const running = session.start();
+        await vi.waitFor(() => expect(writeFrom).toHaveBeenCalledOnce());
+        for (let press = 0; press < 5; press++) session.writeTypes();
+        finishFirstWrite(UNCHANGED);
+        await vi.waitFor(() => expect(writeFrom).toHaveBeenCalledTimes(2));
+
+        await session.stop();
+        await running;
+        expect(writeFrom).toHaveBeenCalledTimes(2);
+    });
+
     it('stops the runtime even when the type write never finishes', async () => {
         const writeFrom = vi.fn(() => new Promise<never>(() => undefined));
         const runtimeStop = vi.fn(() => Promise.resolve());

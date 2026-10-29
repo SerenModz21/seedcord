@@ -165,7 +165,7 @@ export class DevSession {
         this.runtime.refreshCommands(shouldRefresh);
     }
 
-    private writeTypes(): void {
+    public writeTypes(): void {
         if (this.isStopped || !this.instance) return;
         if (this.typeWrite) {
             // the running scan may have read a command before this refresh changed it

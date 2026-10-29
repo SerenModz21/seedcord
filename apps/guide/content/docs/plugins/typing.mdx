@@ -62,7 +62,7 @@ Each transport package declares its own `Core`, so the `declare module` line use
 
 The generated file only changes when codegen runs, so a stale one either misses a new key or still types a key you removed.
 
-- In `seedcord dev`, press `r` after you attach a plugin, rename a key, or add a service. Dev rewrites the file each time the bot starts.
+- In `seedcord dev`, press `g` after you add a service. Press `r` after you attach a plugin or rename its key, since dev rewrites the file when the bot starts.
 - Outside dev, run `seedcord codegen`.
 - In CI, `seedcord codegen --check` throws `CliCodegenOutOfDate` when the file is stale.
 
