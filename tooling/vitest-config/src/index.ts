@@ -2,8 +2,7 @@ import { extname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { parseTsconfig } from 'get-tsconfig';
-import { configDefaults } from 'vite-plus';
-import { deepMerge } from 'vite-plus/test/plugins/utils-helpers';
+import { configDefaults, mergeConfig } from 'vite-plus';
 
 import type { AliasOptions } from 'vite-plus';
 import type { InlineConfig } from 'vite-plus/test/node';
@@ -53,5 +52,5 @@ const VITEST_CONFIG: InlineConfig = {
 };
 
 export function createTestConfig(overrides: InlineConfig = {}): InlineConfig {
-    return deepMerge(VITEST_CONFIG, overrides);
+    return mergeConfig(VITEST_CONFIG, overrides);
 }
