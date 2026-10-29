@@ -42,17 +42,11 @@ export default defineConfig({
         proseWrap: 'never',
         overrides: [
             {
-                files: ['*.yml', '*.yaml'],
+                files: ['*.{yml,yaml}'],
                 options: { tabWidth: 2 }
             },
             {
-                files: [
-                    'tooling/ui/**/*.ts',
-                    'tooling/ui/**/*.tsx',
-                    'tooling/ui/**/*.json',
-                    'tooling/ui/**/*.md',
-                    'tooling/ui/**/*.css'
-                ],
+                files: ['tooling/ui/**/*.{ts,tsx,json,md,css}'],
                 options: {
                     sortTailwindcss: {
                         stylesheet: './tooling/ui/src/styles/globals.css',
@@ -61,13 +55,7 @@ export default defineConfig({
                 }
             },
             {
-                files: [
-                    'apps/docs/**/*.ts',
-                    'apps/docs/**/*.tsx',
-                    'apps/docs/**/*.json',
-                    'apps/docs/**/*.md',
-                    'apps/docs/**/*.css'
-                ],
+                files: ['apps/docs/**/*.{ts,tsx,json,md,css}'],
                 options: {
                     sortTailwindcss: {
                         stylesheet: './apps/docs/src/app/globals.css',
@@ -76,13 +64,7 @@ export default defineConfig({
                 }
             },
             {
-                files: [
-                    'apps/home/**/*.ts',
-                    'apps/home/**/*.tsx',
-                    'apps/home/**/*.json',
-                    'apps/home/**/*.md',
-                    'apps/home/**/*.css'
-                ],
+                files: ['apps/home/**/*.{ts,tsx,json,md,css}'],
                 options: {
                     sortTailwindcss: {
                         stylesheet: './apps/home/src/app/globals.css',
@@ -91,13 +73,7 @@ export default defineConfig({
                 }
             },
             {
-                files: [
-                    'apps/guide/**/*.ts',
-                    'apps/guide/**/*.tsx',
-                    'apps/guide/**/*.json',
-                    'apps/guide/**/*.md',
-                    'apps/guide/**/*.css'
-                ],
+                files: ['apps/guide/**/*.{ts,tsx,json,md,css}'],
                 options: {
                     sortTailwindcss: {
                         stylesheet: './apps/guide/src/app/globals.css',
