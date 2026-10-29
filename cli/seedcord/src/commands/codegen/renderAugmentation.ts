@@ -12,7 +12,16 @@ const IDENTIFIER = /^[A-Za-z_$][A-Za-z0-9_$]*$/;
 const CONTROL_CHAR = 0x20;
 const HEX_RADIX = 16;
 
-export type PluginTypeTable = ReadonlyMap<string, string>;
+interface AttachmentType {
+    readonly key: string;
+    readonly type: string;
+}
+
+// a plugin id's row holds one entry per key the bot attached that plugin at
+export type PluginTypeTable = ReadonlyMap<string, readonly AttachmentType[]>;
+
+const FITS = `// a row has to fit what its plugin's codegen() declares
+type Fits<Plugin extends { codegen(): Promise<unknown> }, Row extends Awaited<ReturnType<Plugin['codegen']>>> = Row;`;
 
 interface AttachedPlugins {
     readonly specifier: string; // relative to the generated file at config.root
@@ -26,10 +35,12 @@ export function renderAugmentation(registry: Augmentation, target: string, plugi
     const botImport = attached ? `import type ${BOT_BINDING} from '${escapeLiteral(plugins.specifier)}';\n\n` : '';
     const coreRows = attached ? `    interface Core {\n${renderPluginRows(keys)}\n    }\n` : '';
     const types = plugins?.types;
-    const typeRows = types?.size ? `    interface PluginTypes {\n${renderPluginTypeRows(types)}\n    }\n` : '';
+    const [fits, typeRows] = types?.size
+        ? [`${FITS}\n\n`, `    interface PluginTypes {\n${renderPluginTypeRows(types)}\n    }\n`]
+        : ['', ''];
 
     // prettier-ignore binds to the next statement, and the declare module is the whole file
-    const header = `${BANNER}\n\n${botImport}// prettier-ignore\ndeclare module '${target}' {\n`;
+    const header = `${BANNER}\n\n${botImport}${fits}// prettier-ignore\ndeclare module '${target}' {\n`;
 
     return (
         `${header + coreRows}    interface SlashRegistry {\n${renderSlashRows(registry.slash)}\n    }\n` +
@@ -54,8 +65,19 @@ function renderPluginRows(keys: readonly string[]): string {
 function renderPluginTypeRows(types: PluginTypeTable): string {
     return [...types]
         .toSorted(([first], [second]) => compare(first, second))
-        .map(([id, type]) => `        ${renderKey(id)}: ${type};`)
+        .map(([id, attachments]) => `        ${renderKey(id)}: ${attachments.map(renderFits).join(' & ')};`)
         .join('\n');
+}
+
+// a generic plugin types each attachment by its own type argument
+function renderFits({ key, type }: AttachmentType): string {
+    return `Fits<${pluginAt(key)}, ${type}>`;
+}
+
+function pluginAt(key: string): string {
+    const { head, leaf } = splitPluginKey(key);
+    const top = `(typeof ${BOT_BINDING})['${escapeLiteral(head)}']`;
+    return leaf === undefined ? top : `${top}['${escapeLiteral(leaf)}']`;
 }
 
 function renderSlashRows(tables: SlashTables): string {
