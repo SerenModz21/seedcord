@@ -1,8 +1,8 @@
 import type { IsStringLiteral } from 'type-fest';
 
 /**
- * What `seedcord codegen` found for each plugin, keyed by the plugin class's `static id`.
- * Codegen writes the members into `seedcord-gen.d.ts`. Read one with {@link Generated}.
+ * The type of what each plugin's `codegen()` returned, keyed by the plugin class's `static id`.
+ * `seedcord codegen` writes the rows into `seedcord-gen.d.ts`. Read a plugin's row with {@link Generated}.
  */
 export interface PluginTypes {}
 
@@ -31,6 +31,9 @@ type FieldsSetTo<PluginClass extends CodegenPluginClass, Message> = {
 /**
  * The data that `codegen()` returned for a plugin class, merged across every attachment of it.
  * Before codegen has run, it is the declared return type of `codegen()`.
+ *
+ * When the written row doesn't fit that return type, or the class's `id` is typed as a plain `string`,
+ * each field becomes a message that says how to fix it.
  */
 export type Generated<PluginClass extends CodegenPluginClass> =
     IsStringLiteral<PluginClass['id']> extends false
