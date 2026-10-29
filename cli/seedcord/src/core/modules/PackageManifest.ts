@@ -32,6 +32,19 @@ export class PackageManifest {
         return undefined;
     }
 
+    public static packageNameOf(file: string): string | undefined {
+        for (let dir = dirname(file); dir !== dirname(dir); dir = dirname(dir)) {
+            // a nested dist/package.json often holds only "type"
+            const { name } = PackageManifest.read(join(dir, 'package.json'));
+            if (name !== undefined) return name;
+        }
+        return undefined;
+    }
+
+    public get name(): string | undefined {
+        return typeof this.json.name === 'string' ? this.json.name : undefined;
+    }
+
     // where "seedcord": { "templates": "./templates" } points, for a plugin that ships templates
     public get templatesFolder(): string | undefined {
         const { seedcord } = this.json;
