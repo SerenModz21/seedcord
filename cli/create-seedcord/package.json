@@ -26,6 +26,7 @@
     "files": [
         "bin",
         "dist",
+        "starters",
         "templates",
         "package.json",
         "README.md",
@@ -57,6 +58,8 @@
     },
     "devDependencies": {
         "@seedcord/cli-prompts": "workspace:^",
+        "@seedcord/cli-templates": "workspace:^",
+        "@seedcord/core": "workspace:^",
         "@seedcord/errors": "workspace:^",
         "@seedcord/eslint-config": "workspace:^",
         "@seedcord/tsconfig": "workspace:^",
@@ -64,7 +67,7 @@
         "@seedcord/types": "workspace:^",
         "@seedcord/vitest-config": "workspace:^",
         "discord.js": "catalog:peer",
-        "handlebars": "^4.7.10",
+        "handlebars": "catalog:deps",
         "package-manager-detector": "^1.8.0",
         "typescript": "catalog:peer",
         "vitest": "catalog:test"

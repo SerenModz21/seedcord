@@ -10,6 +10,6 @@ export default defineConfig({
     pack: createTsdownConfig({
         entry: ['src/index.ts', 'src/workerd.index.ts', 'src/cli.ts'],
         format: ['esm'],
-        deps: { neverBundle: true, alwaysBundle: ['@seedcord/cli-prompts'] }
+        deps: { neverBundle: true, alwaysBundle: ['@seedcord/cli-prompts', /^@seedcord\/cli-templates/] }
     })
 });
